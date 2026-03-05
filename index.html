@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EXTRACTION ECONOMY v23.0 - Blitzscaling (Fixed)</title>
+<style>
+    :root {
+        --win-bg: #c0c0c0; --win-high: #ffffff; --win-shadow: #808080;
+        --win-deep: #000000; --win-blue: linear-gradient(90deg, #000080, #1084d0);
+    }
+    
+    html, body { height: 100vh; overflow: hidden; margin: 0; padding: 0; background-color: #008080; font-family: 'Tahoma', sans-serif; font-size: 13px; }
+    
+    .master-app { display: flex; flex-direction: column; height: 100%; max-width: 1450px; margin: 0 auto; padding: 8px; box-sizing: border-box; }
+    
+    ::-webkit-scrollbar { width: 14px; }
+    ::-webkit-scrollbar-track { background: #dfdfdf; border-left: 1px solid var(--win-shadow); box-shadow: inset 1px 1px 0px #000; }
+    ::-webkit-scrollbar-thumb { background: var(--win-bg); border: 1px solid var(--win-high); border-right-color: var(--win-deep); border-bottom-color: var(--win-deep); }
+    ::-webkit-scrollbar-thumb:active { background: #a0a0a0; }
+
+    .window { background: var(--win-bg); box-shadow: inset 1px 1px var(--win-high), inset -1px -1px var(--win-shadow), 1px 1px 0px 1px var(--win-deep); padding: 3px; display: flex; flex-direction: column; margin-bottom: 8px; }
+    .title-bar { background: var(--win-blue); height: 20px; padding: 2px 6px; display: flex; justify-content: space-between; align-items: center; color: white; font-weight: bold; font-size: 12px; letter-spacing: 0.5px; flex-shrink: 0; }
+    .content-area { padding: 6px; flex-grow: 1; }
+    .inset-panel { box-shadow: inset 1px 1px var(--win-shadow), inset -1px -1px var(--win-high); padding: 8px; background: #dfdfdf; }
+    
+    .protocol-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; }
+    .protocol-wrap { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; background: #d4d0c8; border: 1px solid var(--win-shadow); box-shadow: inset 1px 1px var(--win-high); transition: all 0.2s; font-size: 12px; }
+    
+    .protocol-wrap.active-inv { background: #e0f8e0; border-color: #006400; box-shadow: inset 1px 1px #fff, 0 0 2px #00ff00; }
+    .protocol-wrap.active-ext { background: #f8e0e0; border-color: #8b0000; box-shadow: inset 1px 1px #fff, 0 0 2px #ff0000; }
+    
+    .protocol-label { flex-grow: 1; cursor: pointer; line-height: 1.3; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .protocol-label input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; margin: 0; flex-shrink: 0; }
+    
+    .protocol-wrap.locked { color: #888; background: #ccc; }
+    .protocol-wrap.locked input { cursor: not-allowed; }
+    
+    .info-btn-left { background: #dfdfdf; border: 1px solid #444; padding: 2px 6px; cursor: pointer; font-weight: bold; font-family: 'Courier New', monospace; font-size: 11px; margin-right: 8px; box-shadow: 1px 1px 0px #000; flex-shrink: 0; color: #000080; }
+    .info-btn-left:active { box-shadow: inset 1px 1px 0px #000; transform: translate(1px, 1px); }
+    .cost-flank { font-family: 'Courier New', monospace; font-size: 11px; font-weight: bold; color: #555; margin-left: 8px; flex-shrink: 0; text-align: right; }
+    .ethical-label { color: #006400; }
+
+    .manifold-container { display: flex; justify-content: space-between; height: 170px; padding: 12px 6px; background: #000; border: 1px solid var(--win-shadow); box-shadow: inset 1px 1px #000; }
+    .gauge-col { display: flex; flex-direction: column; align-items: center; width: 40px; }
+    .gauge-val { color: #fff; font-family: 'Courier New', monospace; font-size: 11px; margin-bottom: 6px; font-weight: bold; text-align: center; white-space: nowrap; }
+    .gauge-track { width: 16px; flex-grow: 1; background: #222; border: 1px solid #444; position: relative; overflow: hidden; margin-bottom: 6px; border-radius: 2px; box-shadow: inset 1px 1px 3px #000; }
+    .gauge-fill { position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; transition: height 0.4s ease, background-color 0.4s ease; box-shadow: inset -1px -1px 2px rgba(0,0,0,0.5), inset 1px 1px 2px rgba(255,255,255,0.3); }
+    .gauge-label { color: #aaa; font-family: 'Tahoma', sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
+
+    .metric-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px; align-items: center; font-weight: bold; }
+    
+    button { background: var(--win-bg); border: 1px solid var(--win-deep); box-shadow: inset 1px 1px var(--win-high), inset -1px -1px var(--win-shadow); padding: 8px; cursor: pointer; font-size: 12px; width: 100%; font-weight: bold; }
+    button:active { box-shadow: inset -1px -1px var(--win-high), inset 1px 1px var(--win-shadow); }
+    button:disabled { color: #777; cursor: not-allowed; font-weight: normal; }
+
+    canvas#perf_canvas { background: #000; width: 100%; height: 90px; image-rendering: pixelated; border: 1px solid var(--win-shadow); }
+    #event_log { height: 90px; overflow-y: scroll; background: #fff; font-family: 'Courier New', monospace; font-size: 12px; padding: 4px; border: 1px solid var(--win-shadow); line-height: 1.3; }
+    
+    .scorecard { font-weight: bold; color: #000080; font-size: 13px; line-height: 1.6; }
+    .scorecard-target { color: #8b0000; font-family: 'Courier New', monospace; font-size: 14px; background: #d0d0d0; padding: 2px; border: 1px dotted #888; display: inline-block; margin-top: 4px; width: 100%; text-align: center; }
+    .scorecard-proj { color: #006400; font-family: 'Courier New', monospace; font-size: 14px; background: #d0d0d0; padding: 2px; border: 1px dotted #888; display: inline-block; margin-top: 2px; width: 100%; text-align: center; }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 4px 2px; text-align: left; border-bottom: 1px solid #ccc; }
+    
+    .status-running { background: #008000; color: white; padding: 2px 6px; border-radius: 2px; animation: blinker 1s linear infinite; }
+    .status-halted { background: #800000; color: white; padding: 2px 6px; border-radius: 2px; }
+    @keyframes blinker { 50% { opacity: 0; } }
+    
+    .header-dashboard { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; height: 60px; }
+    .cander-logo { background: #000; padding: 0 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px solid var(--win-shadow); box-shadow: inset 2px 2px #000, inset -2px -2px #444; flex: 1; }
+    .cander-logo-main { color: #00ff00; font-family: 'Courier New', monospace; font-size: 28px; font-weight: bold; letter-spacing: 8px; text-shadow: 0px 0px 4px #00ff00; margin: 0; }
+    .cander-logo-sub { color: #888; font-family: 'Tahoma', sans-serif; font-size: 10px; letter-spacing: 8px; margin-top: 2px; margin-left: 8px; }
+    
+    .spectrum-wrap { margin-bottom: 8px; border: 1px solid var(--win-shadow); background: #000; padding: 4px; flex-shrink: 0; box-shadow: inset 1px 1px #000; }
+    .spectrum-labels { display: flex; justify-content: space-between; color: #aaa; font-family: 'Courier New', monospace; font-size: 10px; font-weight: bold; margin-bottom: 4px; letter-spacing: 1px; }
+    .spectrum-bar { height: 8px; background: linear-gradient(90deg, #00ffff 0%, #444 50%, #ff0000 100%); position: relative; border: 1px solid #444; }
+    .spectrum-indicator { position: absolute; width: 4px; height: 14px; background: #fff; top: -3px; transform: translateX(-50%); box-shadow: 0 0 4px #fff; transition: left 0.3s ease; left: 50%; }
+
+    .threat-banner { color: white; padding: 6px; font-weight: bold; text-align: center; margin-bottom: 8px; border: 1px solid #000; display: none; font-family: 'Courier New', monospace; letter-spacing: 1px; font-size: 13px; flex-shrink: 0; }
+    .threat-board { background: #8b0000; animation: blinker 2s linear infinite; }
+    .threat-state { background: #cc5500; }
+    .threat-positive { background: #006400; animation: none; }
+    
+    .inbox-item { border-bottom: 1px solid #ccc; padding: 10px; cursor: pointer; font-size: 13px; line-height: 1.3; }
+    .inbox-item:hover { background: #e0e0e0; }
+    .unread { font-weight: bold; color: #000080; }
+    
+    .action-button { margin-top: 8px; height: 40px; background: #dfdfdf; border: 2px solid #444; font-weight: bold; cursor: pointer; font-size: 13px; }
+    
+    .ticker-wrap { width: 100%; overflow: hidden; background-color: #000; border: 1px solid var(--win-shadow); box-shadow: inset 1px 1px #000; margin-bottom: 8px; white-space: nowrap; box-sizing: border-box; flex-shrink: 0; }
+    .ticker { display: inline-block; padding-left: 100%; transform: translateX(0); animation: ticker 25s linear infinite; color: #00ff00; font-family: 'Courier New', monospace; font-size: 13px; padding-top: 4px; padding-bottom: 4px; font-weight: bold; }
+    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+    
+    .leaderboard-row { display: flex; justify-content: space-between; border-bottom: 1px dotted #888; padding: 4px 0; font-size: 12px; }
+    .leaderboard-row:last-child { border-bottom: none; }
+    
+    .ctrl-btn { height: 100%; font-size: 13px; background: #dfdfdf; flex-grow: 1; margin: 0; }
+    .ctrl-active { background: #008080; color: white; box-shadow: inset -1px -1px var(--win-high), inset 1px 1px var(--win-shadow); }
+
+    .grid-container { display: grid; grid-template-columns: 280px 1fr 340px; gap: 8px; flex-grow: 1; overflow: hidden; min-height: 0; }
+    .col-left, .col-right { overflow-y: auto; overflow-x: hidden; padding-right: 4px; display: flex; flex-direction: column; gap: 8px; }
+    .col-mid { overflow-y: auto; overflow-x: hidden; padding-right: 4px; display: flex; flex-direction: column; gap: 8px; }
+    
+    .sticky-intel { position: sticky; top: 0; z-index: 10; margin-bottom: 8px; }
+    .atlas-blurb { font-size: 11px; color: #444; text-align: justify; line-height: 1.4; margin-top: auto; padding-top: 8px; border-top: 1px dotted #888; font-family: 'Tahoma', sans-serif; }
+
+    @media (max-width: 950px) {
+        html, body { height: auto; overflow: auto; }
+        .master-app { height: auto; }
+        .grid-container { grid-template-columns: 1fr; overflow: visible; height: auto; display: flex; flex-direction: column; }
+        .header-dashboard { flex-direction: column; height: auto; }
+        .col-left, .col-mid, .col-right { overflow-y: visible; padding-right: 0; }
+        .cander-logo { padding: 15px; }
+        .sticky-intel { position: relative; }
+        .inbox-modal-content { flex-direction: column !important; }
+        .inbox-list-area { width: 100% !important; height: 150px; border-right: none !important; border-bottom: 2px solid var(--win-shadow); }
+    }
+</style>
+</head>
+<body>
+
+<div class="master-app">
+    <div class="header-dashboard">
+        <div class="cander-logo">
+            <div class="cander-logo-main">CANDER</div>
+            <div class="cander-logo-sub">OPERATIONAL TERMINAL v23.0 (FIXED)</div>
+        </div>
+        
+        <div class="window" style="margin: 0; width: 200px; justify-content: center;">
+            <div class="content-area" style="display: flex; flex-direction: column; justify-content: center;">
+                <div style="font-size: 11px; font-weight: bold; color: #555; text-align: center;">RESERVES (VC CAPITAL)</div>
+                <div id="p_disp" style="font-size:24px; font-weight:bold; color:green; text-align: center;">$1,000,000</div>
+            </div>
+        </div>
+        
+        <div class="window" style="margin: 0; width: 120px; justify-content: center;">
+            <div class="content-area" style="display: flex; flex-direction: column; justify-content: center;">
+                <div style="font-size: 11px; font-weight: bold; color: #555; text-align: center;">MACRO GDP</div>
+                <div id="g_disp" style="font-size:20px; font-weight:bold; color:#3366cc; text-align: center;">100%</div>
+            </div>
+        </div>
+        
+        <div class="window" style="margin: 0; width: 340px;">
+            <div class="title-bar" style="height: 14px; font-size: 10px;">PACING <span id="clock_status" class="status-halted" style="font-size: 9px; padding: 1px 4px;">HALTED</span></div>
+            <div class="content-area" style="display: flex; gap: 4px; padding: 4px;">
+                <button class="ctrl-btn ctrl-active" id="btn_p_pause" onclick="playClick(); set_speed(0)">|| PAUSE</button>
+                <button class="ctrl-btn" id="btn_p_1x" onclick="playClick(); set_speed(3000)">> 1X</button>
+                <button class="ctrl-btn" id="btn_p_2x" onclick="playClick(); set_speed(1500)">>> 2X</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="spectrum-wrap">
+        <div class="spectrum-labels"><span>[PURE FREE MARKET]</span><span>MACRO-ALIGNMENT SPECTRUM</span><span>[THE TOLL BOOTH]</span></div>
+        <div class="spectrum-bar"><div id="spectrum_indicator" class="spectrum-indicator"></div></div>
+    </div>
+
+    <div class="ticker-wrap"><div class="ticker" id="news_ticker">MARKET STABLE... AWAITING MONTHLY EARNINGS REPORT... INITIALIZING CANDER TERMINAL...</div></div>
+    
+    <div id="alert_board" class="threat-banner threat-board">⚠️ FIDUCIARY RISK: Board patience critical. Missed growth targets. Increase extraction yield immediately.</div>
+    <div id="alert_state" class="threat-banner threat-state">⚠️ ANTITRUST RISK: Political capital depleted. State intervention imminent.</div>
+    <div id="alert_boom" class="threat-banner threat-positive">📈 VALUE CREATION: Free Market Expansion triggered. TAM limit increased.</div>
+
+    <div class="grid-container">
+        
+        <div class="col-left">
+            <div class="window" style="margin-bottom:0;"><div class="title-bar">GLOBAL_USER_BASE</div><div class="content-area">
+                <div id="u_disp" style="font-size:22px; font-weight:bold;">5,000</div>
+                <div style="font-size:11px; color:#555;">Total Active Licenses</div>
+            </div></div>
+            
+            <div class="window" style="margin-bottom:0; background:#000; color:#0f0;">
+                <div class="title-bar" style="background:#551a8b;">UNIT ECONOMICS</div>
+                <div class="content-area" style="font-family:'Courier New', monospace; font-size: 13px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>ARPU:</span><span id="ue_arpu">$0.00</span></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>CHURN:</span><span id="ue_churn">0.0%</span></div>
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px dotted #0f0; margin-bottom:4px; padding-bottom:4px;"><span>CAC SPEND:</span><span id="ue_cac">$0</span></div>
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; color:#fff;"><span>LTV:</span><span id="ue_ltv">$0</span></div>
+                </div>
+            </div>
+            
+            <div class="window" style="background:#d4d0c8; margin-bottom:0;">
+                <div class="title-bar" style="background:#404040;">SCORECARD</div>
+                <div class="content-area scorecard">
+                    Extracted: $<span id="s_ext">0</span><br>
+                    IP / Patents: $<span id="s_ip">0</span>/mo<br>
+                    Lobbying/PR: $<span id="s_lob">0</span><br>
+                    Engineers: <span id="s_eng">25</span><br>
+                    <div class="scorecard-target">TARGET MARGIN:<br>$<span id="s_target">10,000</span></div>
+                    <div class="scorecard-proj">PROJ. MARGIN:<br><span id="s_proj_margin">$0</span></div>
+                    <br>Current Month: <span id="q_disp">1</span>
+                </div>
+            </div>
+
+            <div class="window" style="margin-bottom:0;">
+                <div class="title-bar" style="background:#404040;">MARKET_SATURATION (TAM)</div>
+                <div class="content-area inset-panel" style="max-height: 120px; overflow-y: auto;">
+                    <table><thead><tr><th>SEGMENT</th><th>VOL</th><th>CAP</th><th>SAT</th></tr></thead><tbody id="user_table"></tbody></table>
+                </div>
+            </div>
+
+            <div class="window" style="margin-bottom:0;">
+                <div class="title-bar" style="background:#000;">ALL-TIME TOP EXTRACTIONS</div>
+                <div class="content-area inset-panel" id="high_scores_list" style="font-family:'Courier New', monospace; font-size:12px; color:#000080; overflow-y: auto;">
+                    No historical data.
+                </div>
+            </div>
+            
+            <div class="atlas-blurb">
+                <b>ATLAS Protocol: Applied Technology for Localized Academic Sovereignty.</b><br>
+                This engine operates as a cognitive firewall. It models the unvarnished mechanics of platform economics, mapping the adversarial incentive structures driving modern markets. It strips away public relations to reveal the underlying mathematical reality of institutional yield and the Fiduciary Trap.
+            </div>
+        </div>
+
+        <div class="col-mid">
+            <div class="window sticky-intel" style="background: #ffffe1; border: 2px solid #800000; margin-bottom: 0;">
+                <div class="title-bar" style="background:#800000;">TACTICAL_INTEL</div>
+                <div class="content-area" id="intel_display" style="font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold; min-height: 40px; color: #000; padding: 8px; line-height: 1.4;">
+                    Hover or tap [?] on any protocol switch to review historical precedent and systemic impact.
+                </div>
+            </div>
+            
+            <div class="window" style="margin-bottom:0; border: 2px solid #4b0082;">
+                <div class="title-bar" style="background:#4b0082;">PRODUCT PIPELINE</div>
+                <div class="content-area" style="display:flex; justify-content:space-between; align-items:center; padding: 10px; background: #e6e6fa;">
+                    <div style="font-weight:bold; font-size:14px; font-family: 'Courier New', monospace; color: #000;">
+                        R&D CYCLE: <span id="launch_status" style="color:#8b0000;">DEVELOPING (12 MO)</span>
+                    </div>
+                    <button id="btn_launch" onclick="playClick(); trigger_launch_modal()" disabled style="width:160px; margin:0; height: 35px;">R&D LOCKED</button>
+                </div>
+            </div>
+
+            <div class="window" style="margin-bottom:0;">
+                <div class="title-bar" style="background:#2e8b57;">PRO-CONSUMER PROTOCOLS (OPEN MARKET)</div>
+                <div class="content-area inset-panel protocol-grid">
+                    <div class="protocol-wrap" id="wrap_e_uni">
+                        <div class="info-btn-left" onclick="show_intel('FREE MARKET: Eliminates lock-in by maintaining open file formats. This is the base requirement for Market Expansion, but reduces your Dependency to 0%.')">[?]</div>
+                        <label class="protocol-label ethical-label"><input type="checkbox" id="e_uni" onchange="playClick(); update_locks()"> Universal Interop.</label>
+                        <span class="cost-flank">-$0</span>
+                    </div>
+                    <div class="protocol-wrap" id="wrap_e_priv">
+                        <div class="info-btn-left" onclick="show_intel('FREE MARKET: End-to-end encryption. Destroys your ability to sell data. Costs $10k/mo in server overhead, but boosts engineer morale and user trust.')">[?]</div>
+                        <label class="protocol-label ethical-label"><input type="checkbox" id="e_priv" onchange="playClick(); update_locks()"> Privacy Sandbox</label>
+                        <span class="cost-flank">-$10k</span>
+                    </div>
+                    <div class="protocol-wrap" id="wrap_e_trans">
+                        <div class="info-btn-left" onclick="show_intel('FREE MARKET: Flat rate only. No hidden fees. Drops ARPU significantly, but is required to trigger Market Expansion.')">[?]</div>
+                        <label class="protocol-label ethical-label"><input type="checkbox" id="e_trans" onchange="playClick(); update_locks()"> Transparent Bill.</label>
+                        <span class="cost-flank">-$0</span>
+                    </div>
+                    <div class="protocol-wrap" id="wrap_i_rd">
+                        <div class="info-btn-left" onclick="show_intel('FREE MARKET: Innovation generates organic dependency. Sustained investment yields a massive multiplier during product launches.')">[?]</div>
+                        <label class="protocol-label ethical-label"><input type="checkbox" id="i_rd" onchange="playClick(); update_locks()"> Traditional R&D</label>
+                        <span class="cost-flank">-$15k</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" style="margin-bottom:0;">
+                <div class="title-bar" style="background:#4a90e2;">INFRASTRUCTURE LOCK-IN (THE CAGE)</div>
+                <div class="content-area inset-panel protocol-grid" style="grid-template-columns: 1fr;">
+                    <div class="protocol-wrap" id="wrap_i_cld">
+                        <div class="info-btn-left" onclick="show_intel('HISTORICAL: The Goliath playbook. Burn VC capital to heavily subsidize cloud storage. It drives massive adoption and starves competitors. Creates a massive Customer Acquisition Cost (CAC).')">[?]</div>
+                        <label class="protocol-label"><input type="checkbox" id="i_cld" onchange="playClick(); update_locks()"> Cloud Loss-Leader</label>
+                        <span class="cost-flank" id="cld_cost_flank">-$25k</span>
+                    </div>
+                    <div class="protocol-wrap" id="wrap_i_fmt">
+                        <div class="info-btn-left" onclick="show_intel('HISTORICAL: The FruitTech/Axiom trap. Force users to save work in proprietary formats. If they leave, years of historical files become unreadable.')">[?]</div>
+                        <label class="protocol-label"><input type="checkbox" id="i_fmt" disabled onchange="playClick(); update_locks()"> Deprecate Standard Exports</label>
+                        <span class="cost-flank">LOCK</span>
+                    </div>
+                    <div class="protocol-wrap" id="wrap_i_sas">
+                        <div class="info-btn-left" onclick="show_intel('HISTORICAL: Axiom Design 2013 shift. Revoke previously sold perpetual licenses and force users into a monthly subscription toll booth.')">[?]</div>
+                        <label class="protocol-label"><input type="checkbox" id="i_sas" disabled onchange="playClick(); update_locks()"> SaaS Transition</label>
+                        <span class="cost-flank">LOCK</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" style="margin-bottom:0;"><div class="title-bar">EXTRACTION_PROTOCOLS (THE HARVEST)</div>
+                <div class="content-area inset-panel">
+                    <div class="metric-row" style="margin: 4px 6px 12px 6px; padding-bottom: 12px; border-bottom: 2px solid #888;">
+                        <span style="font-size:13px;">BASE MONTHLY SUB: $<span id="price_val">10</span></span>
+                        <input type="range" id="price_slider" min="0" max="150" value="10" oninput="playClack(this.value); update_locks();" style="width: 160px; height: 20px;">
+                    </div>
+                    
+                    <div class="protocol-grid">
+                        <div class="protocol-wrap" id="wrap_t_pd">
+                            <div class="info-btn-left" onclick="show_intel('HISTORICAL: Velocity Surge pricing. Automatically detect user desperation (tight deadlines) and charge dynamic tolls.')">[?]</div>
+                            <label class="protocol-label"><input type="checkbox" id="t_pd" onchange="playClick(); update_locks()"> Algorithmic Pricing</label>
+                            <span class="cost-flank">+$5/u</span>
+                        </div>
+                        <div class="protocol-wrap" id="wrap_t_st">
+                            <div class="info-btn-left" onclick="show_intel('HISTORICAL: Goliath Prime. Intentionally design confusing UI mazes (Roach Motels) to legally trick users out of canceling. Slashes churn rate by 25%, artificially spiking LTV.')">[?]</div>
+                            <label class="protocol-label"><input type="checkbox" id="t_st" onchange="playClick(); update_locks()"> Cancel Friction</label>
+                            <span class="cost-flank">CHURN -25%</span>
+                        </div>
+                        <div class="protocol-wrap" id="wrap_t_hf">
+                            <div class="info-btn-left" onclick="show_intel('HISTORICAL: GateKeeper Ticketing. Advertise a low base price, but hide compute/rendering costs until the final checkout.')">[?]</div>
+                            <label class="protocol-label"><input type="checkbox" id="t_hf" onchange="playClick(); update_locks()"> Hidden Fees</label>
+                            <span class="cost-flank">+$2/u</span>
+                        </div>
+                        <div class="protocol-wrap" id="wrap_t_db">
+                            <div class="info-btn-left" onclick="show_intel('HISTORICAL: Panopticon Media. Secretly harvest user behavior and sell the dataset to ad networks. Highly lucrative, severe political risk.')">[?]</div>
+                            <label class="protocol-label"><input type="checkbox" id="t_db" onchange="playClick(); update_locks()"> Telemetry Brokering</label>
+                            <span class="cost-flank">+$6/u</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="window" style="margin-bottom:0;">
+                <div class="title-bar">LOBBYING & M&A</div>
+                <div class="content-area inset-panel">
+                    <div class="protocol-grid" style="grid-template-columns: 1fr;">
+                        <div class="protocol-wrap" id="wrap_inf_moat">
+                            <div class="info-btn-left" onclick="show_intel('HISTORICAL: Fund PACs that push for safety regulations specifically designed to make compliance too expensive for open-source startups.')">[?]</div>
+                            <label class="protocol-label"><input type="checkbox" id="inf_moat" onchange="playClick(); update_locks()"> Regulatory Moat</label>
+                            <span class="cost-flank">-$40k</span>
+                        </div>
+                        <div class="protocol-wrap" id="wrap_inf_pr">
+                            <div class="info-btn-left" onclick="show_intel('HISTORICAL: Spend money on media firms to artificially reframe your predatory behavior as pro-consumer innovation.')">[?]</div>
+                            <label class="protocol-label"><input type="checkbox" id="inf_pr" onchange="playClick(); update_locks()"> PR Spin Campaign</label>
+                            <span class="cost-flank">-$10k</span>
+                        </div>
+                    </div>
+                    <div style="padding: 4px;">
+                        <button onclick="playClick(); acquire_competitor()" id="btn_acquire" style="height: 35px; font-size: 13px;">ACQUIRE THREAT ($0)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" style="margin-bottom:0;">
+                <div class="title-bar" style="background:#551a8b;">INTERNAL "NUDGE" ARCHITECTURE (HR)</div>
+                <div class="content-area inset-panel protocol-grid" style="grid-template-columns: 1fr;">
+                    <div class="protocol-wrap" id="wrap_hr_nca">
+                        <div class="info-btn-left" onclick="show_intel('REALITY: Legally prevents your engineers from quitting. However, trapped engineers slowly poison your internal culture.')">[?]</div>
+                        <label class="protocol-label"><input type="checkbox" id="hr_nca" onchange="playClick(); update_locks()"> Enforce Non-Competes</label>
+                        <span class="cost-flank">TRAP</span>
+                    </div>
+                    <div class="protocol-wrap" id="wrap_hr_well">
+                        <div class="info-btn-left" onclick="show_intel('BEHAVIORAL NUDGE: Mandate a health app that tracks biometrics. Slashes health insurance premiums, but destroys morale through surveillance.')">[?]</div>
+                        <label class="protocol-label"><input type="checkbox" id="hr_well" onchange="playClick(); update_locks()"> Corp Wellness App</label>
+                        <span class="cost-flank">+$12k</span>
+                    </div>
+                    <div class="protocol-wrap" id="wrap_hr_stack">
+                        <div class="info-btn-left" onclick="show_intel('BEHAVIORAL NUDGE: Gamify engineering output using constant peer tracking. Spikes R&D Yield, but weaponizes the workplace. Burns out staff.')">[?]</div>
+                        <label class="protocol-label"><input type="checkbox" id="hr_stack" onchange="playClick(); update_locks()"> Algorithmic Stack Rank</label>
+                        <span class="cost-flank">BURN</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-right">
+            <div class="window" style="margin-bottom:0;">
+                <div class="title-bar" style="background:#b22222;">SYSTEM_PRESSURE_MANIFOLD</div>
+                <div class="content-area" style="background:#000;">
+                    <div class="manifold-container">
+                        <div class="gauge-col">
+                            <div class="gauge-val" id="g_rd_val">100%</div>
+                            <div class="gauge-track"><div class="gauge-fill" id="g_rd_fill" style="background:#00ffff; height:100%;"></div></div>
+                            <div class="gauge-label">R&D</div>
+                        </div>
+                        <div class="gauge-col">
+                            <div class="gauge-val" id="g_dep_val">0%</div>
+                            <div class="gauge-track"><div class="gauge-fill" id="g_dep_fill" style="background:#4a90e2; height:0%;"></div></div>
+                            <div class="gauge-label">DEP</div>
+                        </div>
+                        <div class="gauge-col">
+                            <div class="gauge-val" id="g_sat_val">100%</div>
+                            <div class="gauge-track"><div class="gauge-fill" id="g_sat_fill" style="background:#00ff00; height:100%;"></div></div>
+                            <div class="gauge-label">SAT</div>
+                        </div>
+                        <div class="gauge-col">
+                            <div class="gauge-val" id="g_pol_val">50%</div>
+                            <div class="gauge-track"><div class="gauge-fill" id="g_pol_fill" style="background:#ffd700; height:50%;"></div></div>
+                            <div class="gauge-label">POL</div>
+                        </div>
+                        <div class="gauge-col">
+                            <div class="gauge-val" id="g_mor_val">100%</div>
+                            <div class="gauge-track"><div class="gauge-fill" id="g_mor_fill" style="background:#9370db; height:100%;"></div></div>
+                            <div class="gauge-label">MOR</div>
+                        </div>
+                        <div class="gauge-col">
+                            <div class="gauge-val" id="g_brd_val">100%</div>
+                            <div class="gauge-track"><div class="gauge-fill" id="g_brd_fill" style="background:#00ff00; height:100%;"></div></div>
+                            <div class="gauge-label">BRD</div>
+                        </div>
+                        <div class="gauge-col">
+                            <div class="gauge-val" id="g_thr_val" style="color:#ff8c00;">0%</div>
+                            <div class="gauge-track"><div class="gauge-fill" id="g_thr_fill" style="background:#ff8c00; height:0%;"></div></div>
+                            <div class="gauge-label" style="color:#ff8c00;">THR</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="window" style="margin-bottom:0;"><div class="title-bar">PROFIT vs GDP TREND</div><div class="content-area"><canvas id="perf_canvas"></canvas></div></div>
+
+            <div class="window" style="flex-grow: 1; margin-bottom:0;"><div class="title-bar">INTERNAL_COMMS</div><div class="content-area" style="display:flex; flex-direction:column; height: 100%;">
+                <button onclick="playClick(); open_inbox()" id="btn_inbox" style="margin-bottom: 8px; background: #fffacd; height: 40px; font-size: 14px;">OPEN SECURE INBOX (0)</button>
+                <div id="event_log" style="flex-grow:1; min-height: 80px;"></div>
+            </div></div>
+        </div>
+    </div>
+</div>
+
+<div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+    <div class="window" style="width:95%; max-width:600px;">
+        <div class="title-bar"><span id="m_title">MEMO</span></div>
+        <div class="content-area" id="m_body" style="font-size: 14px; line-height: 1.5; padding: 15px;"></div>
+        <div id="m_buttons" style="padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+</div>
+
+<div id="inbox_modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1500; align-items:center; justify-content:center;">
+    <div class="window" style="width:95%; max-width:800px; height:80vh; display:flex; flex-direction:column;">
+        <div class="title-bar"><span>SECURE_INBOX</span><span>[X]</span></div>
+        <div class="content-area inbox-modal-content" style="display:flex; flex-direction:row; height:100%; padding:0; background:#dfdfdf; overflow: hidden;">
+            <div class="inbox-list-area" style="width: 280px; background:#fff; border-right: 1px solid var(--win-shadow); overflow-y:auto;" id="inbox_list"></div>
+            <div style="flex-grow:1; padding: 15px; background:#f5f5f5; overflow-y:auto; font-family:'Courier New', monospace; font-size:14px; line-height: 1.5;" id="inbox_reader">Select a message to read.</div>
+        </div>
+        <button onclick="playClick(); close_inbox()" style="margin: 10px; height: 40px; font-size: 14px;">CLOSE INBOX</button>
+    </div>
+</div>
+
+<div id="game_over_modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center;">
+    <div class="window" style="width:95%; max-width:600px;"><div class="title-bar"><span id="go_title">GAME OVER</span></div><div class="content-area" id="go_body" style="font-size: 15px; line-height: 1.5; padding: 15px;"></div><br><button onclick="playClick(); reset_game()" style="width:100%; height: 50px; font-size: 16px; margin: 10px 0;">REBOOT_SYSTEM</button></div>
+</div>
+
+<script>
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function getAudioCtx() {
+    if (!audioCtx) { 
+        try { audioCtx = new AudioContext(); } catch(e) { console.error('Failed to create AudioContext:', e); }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') { 
+        try { audioCtx.resume(); } catch(e) { console.error('Failed to resume AudioContext:', e); }
+    }
+    return audioCtx;
+}
+
+function playClick() {
+    try {
+        let ctx = getAudioCtx();
+        if (!ctx) { console.warn('No audio context available'); return; }
+        
+        let osc = ctx.createOscillator();
+        let gain = ctx.createGain();
+        osc.type = 'sine'; 
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.01); 
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05); 
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.06);
+    } catch(e) {
+        console.error('Audio error in playClick:', e);
+    }
+}
+
+let lastSliderVal = -1;
+function playClack(val) {
+    // Convert val to number for consistent comparison
+    const numVal = parseInt(val, 10);
+    
+    if (numVal === lastSliderVal) return;
+    lastSliderVal = numVal;
+    
+    try {
+        let ctx = getAudioCtx();
+        if (!ctx) { console.warn('No audio context available'); return; }
+        
+        let osc = ctx.createOscillator();
+        let gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.03);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+    } catch(e) {
+        console.error('Audio error in playClack:', e);
+    }
+}
+
+function playTelex() {
+    try {
+        let ctx = getAudioCtx();
+        if (!ctx) { console.warn('No audio context available'); return; }
+        
+        let now = ctx.currentTime;
+        for (let i = 0; i < 8; i++) {
+            let time = now + (i * 0.08);
+            let osc = ctx.createOscillator();
+            let gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(1000 + (Math.random() * 500), time);
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(0.05, time + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(time);
+            osc.stop(time + 0.06);
+        }
+    } catch(e) {
+        console.error('Audio error in playTelex:', e);
+    }
+}
+
+const GDP_DIVISOR = 12000000;
+let sim_timer = null;
+let current_speed = 0; 
+let current_memo = null;
+
+// Safe helper function for accessing competitors array
+function getCompetitor(index) {
+    if (!Array.isArray(competitors) || index < 0 || index >= competitors.length) {
+        return null;
+    }
+    return competitors[index] || null;
+}
+
+const competitors = [
+    { name: "CanvasOS", desc: "Venture-backed startup" },
+    { name: "Aperture Libre", desc: "Open-source collective" },
+    { name: "PixelForge", desc: "Aggressive domestic rival" },
+    { name: "GNU-Design", desc: "Radical homebrew subversives" },
+    { name: "StudioX", desc: "Enterprise defectors" }
+];
+
+let state = {
+    month: 1, profit: 1000000, gdp: 100,
+    global_sat: 100, global_dep: 0, pol: 50, board_patience: 100, 
+    target_margin: 10000, 
+    eng_morale: 100, eng_count: 25,
+    rd_efficiency: 1.0, last_speed: 0,
+    ext: 0, lob: 0, last_m_ext: 0, over: false, modal_active: false,
+    ip_revenue: 0, 
+    
+    macro_phase: 'NORMAL',
+    macro_cld_cost: 25000,
+    
+    history: { p: [1000000], g: [100] },
+    
+    market_expansion: false,
+    comp_idx: 0, comp_threat: 0, comp_locked: false,
+    launch_cooldown: 12, 
+    
+    last_metrics: {
+        gdp: 100, rd: 1.0, dep: 0, sat: 100, pol: 50, morale: 100, patience: 100, threat: 0
+    },
+    ue_arpu: 0, ue_churn: 0, ue_ltv: 0, ue_cac_spend: 0,
+    
+    inbox: [], unread: 0, ticker_news: [],
+    segments: [
+        { name: "Hobbyists", count: 2500, cap: 50000, v: 0.8, sat: 100, d: 0 },
+        { name: "Indie Pros", count: 1500, cap: 30000, v: 1.2, sat: 100, d: 0 },
+        { name: "Studio Pros", count: 800, cap: 15000, v: 1.8, sat: 100, d: 0 },
+        { name: "Enterprise", count: 200, cap: 5000, v: 2.5, sat: 100, d: 0 }
+    ],
+    memos_deck: [
+        {
+            id: "adv_axiom",
+            condition: function(protocols) { return state.month > 6 && !protocols.i_sas; },
+            title: "[ADVISOR] The 'Axiom' Playbook",
+            text: "CEO, we are leaving money on the table. Look at 'Axiom Design's' historic transition to the Cloud. They revoked perpetual licenses and forced a monthly toll. The users screamed, but recurring revenue tripled. \n\nTrigger the SaaS Transition. If we lock the formats first, they can't leave.",
+            options: [{ text: "Acknowledge Strategy", action: function() { return "DECISION: Advised to execute SaaS transition."; } }], triggered: false
+        },
+        {
+            id: "adv_pythia",
+            condition: function(protocols, price) { return price > 20 && state.global_dep > 50; },
+            title: "[CONFLICT] Enterprise License Audit",
+            text: "<b>[ADVISOR]:</b> We have them locked in. Run the 'Pythia Data' Playbook. Execute an aggressive 'seat audit' on our Enterprise clients. Fine them retroactively for shared logins. Instant $500k injection.\n\n<b>[COUNSEL]:</b> Extorting enterprise clients invites brutal litigation and shatters their satisfaction.",
+            options: [
+                { text: "Execute Audit (+$500k, -Sat, -Pol)", action: function() { 
+                    state.profit += 500000; 
+                    state.ext += 500000;
+                    state.pol -= 15; 
+                    if (state.segments.length > 3) {
+                        state.segments[3].sat = Math.max(0, state.segments[3].sat - 40);
+                    }
+                    return "DECISION: Audit executed. $500k extracted."; 
+                } },
+                { text: "Heed Counsel (Do Nothing)", action: function() { return "DECISION: Audit declined. Legal risk mitigated."; } }
+            ], triggered: false
+        },
+        {
+            id: "adv_goliath",
+            condition: function(protocols) { return protocols.t_st && state.month > 10; },
+            title: "[CONFLICT] The 'Goliath' Squeeze",
+            text: "<b>[ADVISOR]:</b> Let's escalate to the 'Goliath Prime' strategy. We push an update that automatically enrolls all users into a higher tier, hiding the opt-out in a 6-page maze. Massive ARPU bump.\n\n<b>[COUNSEL]:</b> This crosses into wire fraud. The FTC is currently prosecuting massive e-commerce companies for this exact 'roach motel' architecture.",
+            options: [
+                { text: "Deploy Roach Motel (+$10/user, -Sat, -Pol)", action: function() { 
+                    let slider = document.getElementById('price_slider');
+                    if (slider) { 
+                        let v = parseInt(slider.value, 10);
+                        if(!isNaN(v)) { slider.value = v + 10; update_locks(); }
+                    }
+                    state.pol -= 25; state.global_sat -= 25; 
+                    return "DECISION: Roach Motel deployed. FTC attention drawn."; 
+                }},
+                { text: "Heed Counsel (Decline)", action: function() { return "DECISION: Declined to escalate dark patterns."; } }
+            ], triggered: false
+        },
+        {
+            id: "adv_free_market",
+            condition: function(protocols) { return state.market_expansion && state.month > 12; },
+            title: "[BOARD] Volume Over Margin Recognized",
+            text: "<b>[BOARD OF DIRECTORS]:</b> We note that you have rejected standard extraction protocols in favor of Universal Interoperability and fair pricing. While your margins are exceptionally thin, the explosion in our Total Addressable Market (TAM) is undeniable. \n\nWe will temporarily excuse the lack of 'lock-in' architecture, provided user volume continues to meet our escalating revenue targets. Do not slip.",
+            options: [
+                { text: "Continue the Friedman Path", action: function() { state.board_patience += 15; return "DECISION: Board accepts volume strategy. Pressure remains high."; } }
+            ], triggered: false
+        },
+        {
+            id: "adv_retro_tos",
+            condition: function(protocols) { return state.global_dep > 80 && !state.market_expansion && state.month > 20; },
+            title: "[CONFLICT] The 'Nexus Engine' Tax",
+            text: "<b>[ADVISOR]:</b> Our users have built their entire pipelines on our code. It's time for the 'Nexus Engine' playbook. We retroactively update the Terms of Service to charge them a royalty fee on the work they've *already* published. Massive cash injection.\n\n<b>[COUNSEL]:</b> Retroactively altering a contract is legally dubious and will permanently destroy user trust. It is reputational suicide.",
+            options: [
+                { text: "Enact Retroactive Tax (+$750k, -Sat)", action: function() { 
+                    state.profit += 750000; 
+                    state.ext += 750000;
+                    state.global_sat = Math.max(0, state.global_sat - 60); 
+                    return "DECISION: Retroactive Tax applied. Trust shattered. Cash secured."; 
+                } },
+                { text: "Maintain Current ToS", action: function() { return "DECISION: ToS unchanged. Reputation maintained."; } }
+            ], triggered: false
+        },
+        {
+            id: "adv_tax_lobby",
+            condition: function(protocols) { return state.pol > 60 && state.month > 12 && state.comp_threat > 10; },
+            title: "[CONFLICT] The Public Utility Blockade",
+            text: "<b>[COUNSEL]:</b> State universities have secured federal grants to build a free, open-source alternative to our software as a public utility.\n\n<b>[ADVISOR]:</b> Run the 'Filing Software' playbook. Deploy the PAC immediately. Spend $200k to lobby state legislatures to pass a law prohibiting government funds from being used to build software that competes with private enterprise. Blockade them.",
+            options: [
+                { text: "Deploy PAC Blockade (-$200k, -Threat)", action: function() { 
+                    state.profit -= 200000; 
+                    state.lob += 200000;
+                    state.comp_threat = 0; 
+                    state.pol -= 10; 
+                    return "DECISION: Lobbying successful. Public utility software banned."; 
+                } },
+                { text: "Let Public Sector Compete", action: function() { 
+                    state.comp_threat += 25; 
+                    return "DECISION: Blockade refused. Public software enters market."; 
+                } }
+            ], triggered: false
+        },
+        {
+            id: "adv_buyback",
+            condition: function(protocols) { return state.profit > 1500000 && state.month > 8; },
+            title: "[CONFLICT] Excess Capital Allocation",
+            text: "<b>[ADVISOR]:</b> We have massive liquidity. The Board expects a $300k stock buyback to inflate share prices immediately.\n\n<b>[COUNSEL]:</b> Our engineers built the tools driving this revenue. Distributing that $300k as employee bonuses will cement their loyalty and protect our IP from leaking to competitors.",
+            options: [
+                { text: "Execute Stock Buyback (+Board, -Morale)", action: function() { 
+                    state.profit -= 300000; 
+                    state.board_patience += 20; 
+                    state.eng_morale -= 15; 
+                    return "DECISION: Buyback executed. Board pleased, engineers alienated."; 
+                } },
+                { text: "Distribute Bonuses (+Morale, -Board)", action: function() { 
+                    state.profit -= 300000; 
+                    state.eng_morale += 30; 
+                    state.board_patience -= 10; 
+                    return "DECISION: Bonuses distributed. Engineers loyal, Board irritated."; 
+                } }
+            ], triggered: false
+        },
+        {
+            id: "adv_union",
+            condition: function(protocols) { return state.eng_morale < 40 && state.eng_count > 50; },
+            title: "[HR] Unionization Whispers",
+            text: "<b>[COUNSEL]:</b> Due to low morale, organizers are secretly circulating union cards. If they unionize, they will demand a halt to dark patterns and data brokering.\n\n<b>[ADVISOR]:</b> Identify the organizers and terminate them immediately. It's illegal, but the NLRB fines are cheaper than a unionized workforce.",
+            options: [
+                { text: "Fire Organizers (-Count, -Sat, +Fear)", action: function() { 
+                    state.eng_count -= 10; 
+                    state.global_sat -= 10; 
+                    state.pol -= 10; 
+                    return "DECISION: Organizers fired. Workforce terrified but compliant."; 
+                } },
+                { text: "Allow Organization (-Patience, +Morale)", action: function() { 
+                    state.board_patience -= 25; 
+                    state.eng_morale += 20; 
+                    return "DECISION: Organization permitted. Board furious."; 
+                } }
+            ], triggered: false
+        },
+        {
+            id: "macro_boom",
+            condition: function() { return state.month === 24; },
+            title: "[MACRO SHOCK] ZIRP Era",
+            text: "<b>MACRO ENVIRONMENT SHIFT:</b> The Federal Reserve has cut interest rates to zero. Venture capital is flooding the market. \n\nCloud infrastructure providers are slashing prices to capture market share. Consumers have excess liquidity. \n\n* Cloud Costs reduced.\n* Organic user growth significantly multiplied.",
+            options: [{ text: "Acknowledge (Capitalize on Boom)", action: function() { 
+                state.macro_phase = 'BOOM'; 
+                state.macro_cld_cost = 10000; 
+                return "DECISION: Macro environment entering ZIRP Boom. Expand aggressively."; 
+            } }]
+        },
+        {
+            id: "macro_bust",
+            condition: function() { return state.month === 60; },
+            title: "[MACRO SHOCK] Quantitative Tightening",
+            text: "<b>MACRO ENVIRONMENT SHIFT:</b> Inflation has spiked. The Federal Reserve is aggressively raising interest rates. 'Free money' is dead. \n\nCloud providers are passing their debt costs onto you. Consumers are tightening their belts and auditing their subscriptions.\n\n* Cloud Costs heavily spiked from ZIRP lows ($75k/mo).\n* Organic growth severely throttled.\n* Consumer price sensitivity increased.",
+            options: [{ text: "Acknowledge (Prepare for Squeeze)", action: function() { 
+                state.macro_phase = 'BUST'; 
+                state.macro_cld_cost = 75000; 
+                return "DECISION: Macro environment entering Tightening. Pivot to extraction."; 
+            } }]
+        },
+        {
+            id: "macro_recovery",
+            condition: function() { return state.month === 96; },
+            title: "[MACRO SHOCK] Market Normalization",
+            text: "<b>MACRO ENVIRONMENT SHIFT:</b> The economy has absorbed the rate hikes. Markets are stabilizing at a new normal.\n\n* Cloud Costs normalize to $35k/mo.\n* Organic growth returns to baseline metrics.",
+            options: [{ text: "Acknowledge", action: function() { 
+                state.macro_phase = 'NORMAL'; 
+                state.macro_cld_cost = 35000; 
+                return "DECISION: Macro environment stabilized."; 
+            } }]
+        },
+        {
+            id: "c_board_warn",
+            condition: function() { return state.board_patience < 40; },
+            title: "BOARD DIRECTIVE: Fiduciary Warning",
+            text: "The Board is deeply concerned by your recent margins. If you are operating 'pro-consumer' open-market protocols, you are violating your fiduciary duty to maximize shareholder value. Increase extraction yield immediately or face termination.",
+            options: [{ text: "Acknowledge Warning", action: function() { return "DECISION: Acknowledged. Fiduciary risk remains critical."; } }], triggered: false
+        },
+        {
+            id: "adv_launch_pressure",
+            condition: function() { return state.launch_cooldown > 0 && state.launch_cooldown <= 6 && state.board_patience < 40; },
+            title: "[BOARD] Premature Launch Demand",
+            text: "The Board is running out of patience. They are demanding you launch the upcoming major release immediately, months ahead of schedule. The code is highly unstable.\n\n<b>[ADVISOR]:</b> Do it. We get an instant cash injection and save your job. Who cares if it crashes on deployment?\n\n<b>[COUNSEL]:</b> Resist the Board. Tell them the product isn't ready. They will be furious, but our product integrity will remain intact.",
+            options: [
+                { 
+                    text: function() { return isChecked('i_rd') ? "Launch MVP (+$800k, +Patience, -Sat)" : "Launch MVP (+$600k, +Patience, -Sat)"; }, 
+                    action: function() { 
+                        let payout = isChecked('i_rd') ? 800000 : 600000;
+                        state.profit += payout; state.ext += payout; state.board_patience += 40; state.global_sat -= 25; state.eng_morale -= 20; 
+                        reset_launch_memos();
+                        return "DECISION: MVP Shipped broken. $" + (payout/1000) + "k extracted. Brand damaged."; 
+                    }
+                },
+                { 
+                    text: "Hold the Line (-20 Patience)", 
+                    action: function() { 
+                        state.board_patience -= 20; 
+                        return "DECISION: Launch delayed. Board is enraged."; 
+                    }
+                }
+            ], triggered: false
+        },
+        {
+            id: "adv_comp_frontrun",
+            condition: function() { return state.launch_cooldown > 0 && state.launch_cooldown <= 6 && state.comp_threat > 50; },
+            title: "[COMPETITION] Front-Run the Rival",
+            text: "Our primary competitor is announcing their new version next week.\n\n<b>[ADVISOR]:</b> We need to step on their press cycle. Push our release out today. It's half-baked, but the early revenue will starve them of oxygen and crush their momentum.\n\n<b>[COUNSEL]:</b> Launching a broken product out of fear destroys our brand. Keep the engineers focused on the scheduled release.",
+            options: [
+                { 
+                    text: function() { return isChecked('i_rd') ? "Front-Run Competitor (+$950k, -Threat, -Sat)" : "Front-Run Competitor (+$700k, -Threat, -Sat)"; }, 
+                    action: function() { 
+                        let payout = isChecked('i_rd') ? 950000 : 700000;
+                        state.profit += payout; state.ext += payout; state.comp_threat = 0; state.global_sat -= 20; state.eng_morale -= 15; 
+                        reset_launch_memos();
+                        return "DECISION: Competitor front-run. $" + (payout/1000) + "k extracted. Oxygen starved."; 
+                    }
+                },
+                { 
+                    text: "Stay the Course (+Threat)", 
+                    action: function() { 
+                        state.comp_threat += 20; 
+                        return "DECISION: Stayed the course. Competitor gains market mindshare."; 
+                    }
+                }
+            ], triggered: false
+        }
+    ]
+};
+
+function isChecked(id) {
+    let el = document.getElementById(id);
+    return el ? el.checked : false;
+}
+
+function reset_launch_memos() {
+    state.launch_cooldown = 12;
+    for(let i=0; i<state.memos_deck.length; i++) {
+        if(state.memos_deck[i].id === 'adv_launch_pressure' || state.memos_deck[i].id === 'adv_comp_frontrun') {
+            state.memos_deck[i].triggered = false;
+        }
+    }
+}
+
+function init() {
+    // Remove dead code - threat_label element doesn't exist in HTML
+    // Original: let label = document.getElementById('threat_label'); ...
+    
+    state.memos_deck.push({
+        id: "onboarding", condition: function(){ return false; }, title: "[BOARD] Blitzscaling Phase", 
+        text: "You are the newly appointed CEO of Cander Creative. We are a venture-backed startup. \n\nWe have secured $1,000,000 in capital to scale the platform. Currently, we control only 5% of the 100,000 Total Addressable Market (TAM). \n\nIf you initiate heavy extraction protocols (Lock-in, Tolls) too early, market growth will halt entirely. You must strategically subsidize the market to achieve scale, then extract to survive the eventual Fiduciary Ratchet.",
+        options: [{
+            text: "Initialize Terminal", 
+            action: function() { 
+                set_speed(3000); 
+                return "DECISION: Terminal Initialized. Engine Engaged."; 
+            } 
+        }], 
+        triggered: true
+    });
+    
+    trigger_interactive_memo(state.memos_deck[state.memos_deck.length-1]);
+    
+    // Remove dead code - use correct element IDs for alerts
+    render_high_scores();
+    update_locks();
+}
+
+function show_intel(text) {
+    const intel_display = document.getElementById('intel_display');
+    if (intel_display) intel_display.innerText = text;
+}
+
+function setWrapClass(id, isActive, isExt) {
+    let wrap = document.getElementById(id);
+    if (!wrap) return; // Added null check
+    wrap.classList.remove('active-ext', 'active-inv');
+    if (isActive) {
+        if (isExt) wrap.classList.add('active-ext');
+        else wrap.classList.add('active-inv');
+    }
+}
+
+function update_locks() {
+    const e_uni = document.getElementById('e_uni');
+    const e_priv = document.getElementById('e_priv');
+    const e_trans = document.getElementById('e_trans');
+    const i_cld = document.getElementById('i_cld');
+    const i_fmt = document.getElementById('i_fmt');
+    const i_sas = document.getElementById('i_sas');
+    const t_pd = document.getElementById('t_pd');
+    const t_st = document.getElementById('t_st'); 
+    const t_hf = document.getElementById('t_hf');
+    const t_db = document.getElementById('t_db');
+    
+    // Added null checks for all elements used in this function
+    if (!e_uni || !e_priv || !e_trans || !i_cld || !i_fmt || !i_sas || 
+        !t_pd || !t_st || !t_hf || !t_db) return; 
+    
+    const wrap_i_fmt = document.getElementById('wrap_i_fmt');
+    const wrap_i_sas = document.getElementById('wrap_i_sas');
+    
+    if (!wrap_i_fmt || !wrap_i_sas) return;
+    
+    // ... rest of function logic continues here
