@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Angler's Co-pilot | Fly Fishing + Voice Log</title>
+    <title>The Angler's Co-pilot | Fly Fishing + GPS Map</title>
+    
+    <!-- Leaflet.js for maps (free, no API key needed) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <style>
         :root {
             --primary: #2c5f47;
-            •secondary: #4a9d80;
+            --secondary: #4a9d80;
             --accent: #e67e22;
             --light: #f5f5dc;
             --dark: #1a3d2e;
@@ -91,19 +96,6 @@
             font-size: 1em;
         }
         
-        .knot-card {
-            border: 2px solid var(--secondary);
-            border-radius: 8px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-        }
-        
-        .knot-card:hover { transform: scale(1.02); border-color: var(--accent); }
-        .knot-name { font-weight: bold; color: var(--primary); margin-bottom: 5px; }
-        .knot-use { font-size: 0.9em; color: #666; }
-        
         .result-box {
             background: var(--light);
             border-left: 4px solid var(--accent);
@@ -116,6 +108,58 @@
         .result-box.success { border-left-color: var(--success); background: #e8f5e9; }
         .result-box.info { border-left-color: var(--info); background: #e7f3ff; }
         
+        /* MAP STYLES (NEW!) */
+        #map-container {
+            height: 400px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+            border: 2px solid var(--secondary);
+        }
+        
+        #map {
+            height: 350px;
+            width: 100%;
+            border-radius: 8px;
+        }
+        
+        .map-controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* Hot spot visualization */
+        .hot-spot-card {
+            background: linear-gradient(135deg, #fff3e6 0%, #ffe4b3 100%);
+            border-left: 4px solid var(--accent);
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        
+        .hot-spot-count {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        /* Fish entry styles */
         .fish-entry {
             background: white;
             border: 1px solid #ddd;
@@ -137,22 +181,7 @@
         .status-kept { background: var(--success); }
         .status-released { background: var(--info); }
         
-        .voice-display {
-            background: #f0f4f8;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 15px 0;
-            font-style: italic;
-            color: #666;
-            min-height: 50px;
-        }
-        
-        .voice-display.active { 
-            background: #ffebee; 
-            border-left: 4px solid var(--warning);
-            color: #333;
-        }
-        
+        /* Stats cards */
         .log-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -169,55 +198,17 @@
         
         .stat-value { font-size: 2em; font-weight: bold; color: var(--primary); }
         .stat-label { font-size: 0.9em; color: #666; margin-top: 5px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: var(--primary); color: white; }
-        tr:hover { background: #f9f9f9; }
-        
-        .tag {
-            display: inline-block;
-            background: var(--secondary);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            margin: 3px;
-        }
-        
-        .tag.limit { background: var(--accent); }
-        .tag.season { background: #9b59b6; }
-        .tag.special { background: #e74c3c; }
-        .tag.fly { background: var(--info); }
-        
-        /* NEW: Quick Log Buttons */
-        .quick-log {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-            flex-wrap: wrap;
-        }
-        
-        .quick-btn {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            cursor: pointer;
-            border: 2px solid var(--secondary);
-            background: white;
-            transition: all 0.2s;
-        }
-        
-        .quick-btn:hover, .quick-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
 
+        /* Leaflet popup styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
         @media (max-width: 600px) {
             h1 { font-size: 1.8em; }
             .grid-2, .grid-4 { grid-template-columns: 1fr; }
-            .quick-log { flex-direction: column; }
+            #map-container { height: 350px; }
         }
     </style>
 </head>
@@ -225,63 +216,88 @@
     <div class="container">
         <header>
             <h1>🎣 The Angler's Co-pilot</h1>
-            <p class="subtitle">AI-powered fly fishing intelligence with live logging + voice commands</p>
+            <p class="subtitle">AI-powered fly fishing intelligence + GPS mapping</p>
         </header>
 
         <!-- ============================================ -->
-        <!-- SECTION 0: FISHING LOG (NEW!) -->
+        <!-- SECTION 0: MAP & HOT SPOTS (NEW!) -->
+        <!-- ============================================ -->
+        <section id="map-section">
+            <h2>🗺️ Catch Map & Hot Spots</h2>
+            <p style="margin-bottom:15px;"><em>Your productive waters, visualized. Click markers for details.</em></p>
+            
+            <!-- Location Controls -->
+            <div class="map-controls">
+                <button id="get-location-btn" onclick="getCurrentLocation()">📍 Get My Location</button>
+                <button onclick="zoomToHotSpots()" style="background:var(--accent);">🔥 Zoom to Hot Spots</button>
+                <button onclick="clearMapMarkers()" style="background:#999;">✕ Clear Markers</button>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="map-controls" id="filter-buttons">
+                <span style="font-weight:bold; margin-right:10px;">Show:</span>
+                <button class="filter-btn active" onclick="setMapFilter('all', this)">All</button>
+                <button class="filter-btn" onclick="setMapFilter('trout', this)">🐟 Trout</button>
+                <button class="filter-btn" onclick="setMapFilter('kept', this)">✅ Kept</button>
+                <button class="filter-btn" onclick="setMapFilter('released', this)">🌊 Released</button>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map-container">
+                <div id="map"></div>
+            </div>
+
+            <!-- Hot Spots Summary -->
+            <h4 style="margin-top:20px;">🔥 Your Best Waters</h4>
+            <div id="hot-spots-display">
+                <p style="color:#666; font-style:italic;"><em>Add 5+ catch entries to see your productive hot spots.</em></p>
+            </div>
+
+            <!-- Current Location Display -->
+            <div class="result-box info" style="margin-top:15px;">
+                <strong>📍 Current GPS:</strong> 
+                <span id="gps-display">Not yet determined (click "Get My Location")</span>
+                <button onclick="useCurrentLocationForLog()" style="margin-left:10px; padding:8px 16px; font-size:0.9em;">Use for Next Log</button>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- SECTION 1: FISHING LOG -->
         <!-- ============================================ -->
         <section id="fishing-log">
             <h2>📊 Live Fishing Log</h2>
-            <p style="margin-bottom:15px;"><em>Track every cast, hook-up, and catch. Voice commands work hands-free!</em></p>
             
-            <!-- Session Header -->
+            <!-- Session Header with Location -->
             <div class="result-box info">
                 <strong>📅 Session:</strong> <span id="session-date"></span><br>
                 <strong>🌊 Location:</strong> 
                 <input type="text" id="location-input" placeholder="e.g., Arkansas River, Section B" style="width: 300px; margin-top: 5px;">
-            </div>
-
-            <!-- Voice Command Area -->
-            <div class="grid-2">
-                <div>
-                    <h4 style="margin-bottom:10px;">🎤 Voice Commands</h4>
-                    <button id="voice-btn" onclick="toggleVoice()">Start Listening</button>
-                    <p style="font-size:0.85em; color:#666; margin-top:8px;">
-                        Try saying:<br>
-                        • "Hooked a rainbow, size 12 elk hair caddis"<br>
-                        • "Released brown trout, 14 inch"<br>
-                        • "Kept brook trout, size 10 pheasant tail"
-                    </p>
-                </div>
-                
-                <div class="voice-display" id="voice-text">
-                    <em>Tap button and speak...</em>
+                <div style="margin-top:8px; font-size:0.9em;">
+                    <strong>📍 GPS:</strong> 
+                    <span id="log-gps">Will auto-fill from map</span>
                 </div>
             </div>
 
             <!-- Quick Log Buttons -->
-            <h4 style="margin-top:20px; margin-bottom:10px;">⚡ Quick Log (if voice fails)</h4>
-            <div class="quick-log">
+            <h4 style="margin-top:20px; margin-bottom:10px;">⚡ Quick Add Fish</h4>
+            <div class="quick-log" id="quick-log-buttons">
                 <button class="quick-btn" onclick="presetLog('hook')">🎣 Hooked</button>
                 <button class="quick-btn" onclick="presetLog('land')">✅ Landed</button>
                 <button class="quick-btn" onclick="presetLog('release')">🌊 Released</button>
                 <button class="quick-btn" onclick="presetLog('keep')">🏠 Kept</button>
-                <button class="quick-btn" onclick="presetLog('missed')">💨 Missed</button>
             </div>
 
             <!-- Manual Entry Form -->
             <div class="grid-2">
                 <div id="manual-form">
-                    <h4 style="margin-bottom:10px;">📝 Manual Entry</h4>
+                    <h4 style="margin-bottom:10px;">📝 Full Entry</h4>
                     
                     <label>Fish Status:</label>
-                    <select id="log-status">
+                    <select id="log-status" onchange="updateStatusColor()">
                         <option value="hooked">Hooked (on the line)</option>
                         <option value="landed">Landed (in hand)</option>
                         <option value="released">Released</option>
                         <option value="kept">Kept for eating</option>
-                        <option value="missed">Missed strike</option>
                     </select>
 
                     <label>Fish Species:</label>
@@ -291,8 +307,6 @@
                         <option value="brown">Brown Trout</option>
                         <option value="brook">Brook Trout</option>
                         <option value="cutthroat">Cutthroat Trout</option>
-                        <option value="grayling">Arctic Grayling</option>
-                        <option value="bass">Bass</option>
                     </select>
 
                     <label>Fly Pattern:</label>
@@ -303,17 +317,11 @@
                             <label>Fly Size:</label>
                             <select id="log-fly-size">
                                 <option value="">-- Any --</option>
-                                <option value="-1">Size -1 (huge)</option>
                                 <option value="2">Size 2</option>
-                                <option value="4">Size 4</option>
                                 <option value="6">Size 6</option>
-                                <option value="8">Size 8</option>
                                 <option value="10">Size 10</option>
-                                <option value="12">Size 12</option>
                                 <option value="14">Size 14</option>
-                                <option value="16">Size 16</option>
                                 <option value="18">Size 18</option>
-                                <option value="20">Size 20 (tiny)</option>
                             </select>
                         </div>
 
@@ -322,20 +330,17 @@
                             <select id="log-fly-color">
                                 <option value="">-- Any --</option>
                                 <option value="brown">Brown</option>
-                                <option value="olive">Olive</option>
+                <option value="olive">Olive</option>
                                 <option value="gray">Gray</option>
                                 <option value="black">Black</option>
-                                <option value="white">White</option>
-                                <option value="tan">Tan</option>
-                                <option value="gold">Gold</option>
                             </select>
                         </div>
                     </div>
 
                     <label>Fish Length (inches):</label>
-                    <input type="number" id="log-length" placeholder="Optional - e.g., 14">
+                    <input type="number" id="log-length" placeholder="e.g., 14">
 
-                    <button class="accent" onclick="addLogEntry()">Add to Log</button>
+                    <button class="accent" onclick="addLogEntry()">Add to Log + Map</button>
                 </div>
 
                 <!-- Live Statistics -->
@@ -362,42 +367,30 @@
                     </div>
 
                     <button onclick="exportLogs()" style="width:100%; margin-top:15px;">📥 Export Logs (JSON)</button>
-                    <button onclick="clearSession()" style="width:100%; margin-top:5px; background:#999;">🗑️ Clear Session</button>
                 </div>
             </div>
 
             <!-- Log Entries -->
             <h4 style="margin-top:20px; margin-bottom:10px;">📋 Recent Entries</h4>
             <div id="log-entries">
-                <p style="color:#666; font-style:italic;"><em>No entries yet. Start fishing and log your first fish!</em></p>
-            </div>
-
-            <!-- Best Fly Analysis -->
-            <div class="result-box success" style="margin-top:20px;">
-                <h4>🏆 What's Working Today</h4>
-                <div id="best-fly-display">
-                    <p><em>Add 3+ fish entries to see which flies are most productive.</em></p>
-                </div>
+                <p style="color:#666; font-style:italic;"><em>No entries yet. Start fishing!</em></p>
             </div>
         </section>
 
-        <!-- SECTION 1: REGULATIONS ENGINE -->
+        <!-- ============================================ -->
+        <!-- SECTION 2: REGULATIONS ENGINE -->
+        <!-- ============================================ -->
         <section id="regulations">
             <h2>📜 Regulations Engine</h2>
-            <p style="margin-bottom:15px;"><em>Where are you fishing? (Regulations vary by state/province)</em></p>
             
             <div class="grid-2">
                 <div>
-                    <label>Select State/Province:</label>
+                    <label>Select State:</label>
                     <select id="state-select" onchange="updateSpecies()">
                         <option value="">-- Choose --</option>
                         <option value="CO">Colorado 🏔️</option>
                         <option value="MT">Montana 🌲</option>
                         <option value="WY">Wyoming 🦬</option>
-                        <option value="VT">Vermont 🍁</option>
-                        <option value="ME">Maine 🦞</option>
-                        <option value="OR">Oregon 🏔️</option>
-                        <option value="CA">California 🌊</option>
                     </select>
                     
                     <label>Select Species:</label>
@@ -405,261 +398,391 @@
                         <option value="">-- Choose state first --</option>
                     </select>
                     
-                    <button class="accent" onclick="getLicenseInfo()">Show License Requirements</button>
+                    <button class="accent" onclick="getLicenseInfo()">Show License Info</button>
                 </div>
                 
                 <div id="reg-display">
-                    <p style="color:#666; font-style:italic;"><em>Select a state and species to see regulations...</em></p>
+                    <p style="color:#666; font-style:italic;"><em>Select state and species...</em></p>
                 </div>
-            </div>
-            
-            <div class="license-info" style="margin-top:15px;">
-                💡 <strong>Quick Tip:</strong> Most states offer online licenses at [state]fishwildlife.org. Save a digital copy on your phone!
-            </div>
-        </section>
-
-        <!-- SECTION 2: KNOT MASTER -->
-        <section id="knots">
-            <h2>🪢 Knot Master</h2>
-            <p>Select a knot to see when and how to tie it:</p>
-            <div class="grid-4" style="margin-top: 15px;">
-                <div class="knot-card" onclick="showKnot('clinch')">
-                    <div class="knot-name">Clinch Knot</div>
-                    <div class="knot-use">Tackle to line</div>
-                </div>
-                <div class="knot-card" onclick="showKnot('improved-clinch')">
-                    <div class="knot-name">Improved Clinch</div>
-                    <div class="knot-use">Stronger version</div>
-                </div>
-                <div class="knot-card" onclick="showKnot('palomar')">
-                    <div class="knot-name">Palomar</div>
-                    <div class="knot-use">Big flies, easy</div>
-                </div>
-                <div class="knot-card" onclick="showKnot('double-surgeon')">
-                    <div class="knot-name">Double Surgeon</div>
-                    <div class="knot-use">Leader to line</div>
-                </div>
-            </div>
-            
-            <div id="knot-detail" class="result-box" style="display: none;">
-                <h3 id="knot-title"></h3>
-                <p id="knot-steps"></p>
-            </div>
-        </section>
-
-        <!-- SECTION 3: FLY SELECTOR -->
-        <section id="flies">
-            <h2>🪰 Fly Selector</h2>
-            <div class="grid-2">
-                <div>
-                    <label>Water Type:</label>
-                    <select id="water-type">
-                        <option value="river">River (moving water)</option>
-                        <option value="lake">Lake (still water)</option>
-                        <option value="stream">Small Stream</option>
-                    </select>
-                    
-                    <label>Season:</label>
-                    <select id="season">
-                        <option value="spring">Spring</option>
-                        <option value="summer">Summer</option>
-                        <option value="fall">Fall</option>
-                        <option value="winter">Winter</option>
-                    </select>
-                    
-                    <label>Water Clarity:</label>
-                    <select id="clarity">
-                        <option value="clear">Clear</option>
-                        <option value="stained">Stained</option>
-                        <option value="murky">Murky</option>
-                    </select>
-                    
-                    <button class="accent" onclick="recommendFlies()">Find Perfect Flies</button>
-                </div>
-                
-                <div id="fly-results">
-                    <p><em>Select conditions and click "Find Perfect Flies"</em></p>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECTION 4: CASTING PHYSICS -->
-        <section id="physics">
-            <h2>📐 Casting Physics Calculator</h2>
-            <p>What's the optimal casting angle for distance?</p>
-            
-            <div class="grid-2">
-                <div>
-                    <label>Casting Angle (degrees):</label>
-                    <input type="number" id="angle" value="45" min="0" max="90">
-                    
-                    <label>Line Speed (ft/s):</label>
-                    <input type="number" id="speed" value="30" step="1">
-                    
-                    <button onclick="calculateTrajectory()">Calculate Trajectory</button>
-                </div>
-                
-                <div class="physics-diagram">
-                    <canvas id="trajectoryCanvas" width="350" height="200"></canvas>
-                    <p><small>The classic projectile motion—same math as a cannonball, just fancier line.</small></p>
-                </div>
-            </div>
-            
-            <div id="physics-result" class="result-box" style="display: none;">
-                <strong>Distance:</strong> <span id="distance"></span> ft<br>
-                <strong>Max Height:</strong> <span id="max-height"></span> ft<br>
-                <strong>Flight Time:</strong> <span id="flight-time"></span> s
-            </div>
-        </section>
-
-        <!-- SECTION 5: TACKLE WEIGHT -->
-        <section id="tackle">
-            <h2>⚖️ Tackle Weight Calculator</h2>
-            <p>Match your fly weight to the rod—here's how heavy is too heavy:</p>
-            
-            <div class="grid-2">
-                <div>
-                    <label>Rod Weight (e.g., 5wt, 8wt):</label>
-                    <select id="rod-weight">
-                        <option value="3">3wt (delicate)</option>
-                        <option value="4">4wt (versatile)</option>
-                        <option value="5">5wt (classic)</option>
-                        <option value="6">6wt (medium)</option>
-                        <option value="7">7wt (heavier)</option>
-                        <option value="8">8wt (big fish)</option>
-                        <option value="9">9wt (saltwater)</option>
-                    </select>
-                    
-                    <label>Fly Size:</label>
-                    <select id="fly-size">
-                        <option value="18">Size 18 (tiny midge)</option>
-                        <option value="14">Size 14 (small dry)</option>
-                        <option value="10">Size 10 (medium)</option>
-                        <option value="6">Size 6 (large dry)</option>
-                        <option value="2">Size 2 (streamer)</option>
-                        <option value="-1">Size -1 (big baitfish)</option>
-                    </select>
-                    
-                    <button onclick="calculateTackle()">Check Match</button>
-                </div>
-                
-                <div id="tackle-result" class="result-box" style="display: none;">
-                </div>
-            </div>
-        </section>
-
-        <!-- SECTION 6: HATCH CALENDAR -->
-        <section id="hatch">
-            <h2>📅 Seasonal Hatch Calendar</h2>
-            <p>What insects are hatching when? (Northern Hemisphere)</p>
-            
-            <div class="result-box">
-                <table>
-                    <tr><th>Month</th><th>Major Hatches</th><th>Best Flies</th></tr>
-                    <tr><td>March-April</td><td>PMD, Blue Winged Olive</td><td>#16-#18 dry, nymphs</td></tr>
-                    <tr><td>May-June</td><td>Green Drake, Caddis</td><td>#10-#14 dry flies</td></tr>
-                    <tr><td>July-Aug</td><td>Caddis, Stonefly</td><td>#8-#12 terrestrials</td></tr>
-                    <tr><td>Sept-Oct</td><td>PMO, BWO</td><td>#14-#18 comparaduns</td></tr>
-                </table>
             </div>
         </section>
 
         <!-- FOOTER -->
         <footer style="text-align: center; color: var(--light); padding: 20px;">
-            <p>Made with physics, biology, and regulations. Your friend's still the guide—you're just smarter now.</p>
-            <small>⚠️ Disclaimer: This is a teaching app. Always verify current regulations at your state wildlife agency.</small>
+            <p>Made with physics, biology, and GPS. Your friend's still the guide—you're just smarter now.</p>
+            <small>⚠️ Disclaimer: Verify regulations at state wildlife agency.</small>
         </footer>
     </div>
 
     <script>
         // ==========================================
-        // FISHING LOG ENGINE (NEW!)
+        // MAP & GEOLOCATION (NEW!)
+        // ==========================================
+        
+        let map;
+        let markers = [];
+        let currentLocation = null;
+        let mapFilter = 'all';
+
+        // Initialize the map when page loads
+        function initMap() {
+            // Default to somewhere fishable (Colorado Rockies)
+            const defaultCenter = [39.7392, -104.9903]; // Denver area
+            
+            map = L.map('map').setView(defaultCenter, 8);
+
+            // Add OpenStreetMap tiles (free, no API key needed!)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Add click handler to set location on map
+            map.on('click', function(e) {
+                currentLocation = [e.latlng.lat, e.latlng.lng];
+                updateGPSDisplay();
+                
+                // Show marker where clicked
+                if (map.getLayers().length > 10) {
+                    clearMapMarkers(); // Prevent too many markers
+                }
+                
+                L.marker(currentLocation).addTo(map)
+                    .bindPopup('📍 Clicked location')
+                    .openPopup();
+            });
+
+            loadLogs();
+            updateLogDisplay();
+            updateStats();
+        }
+
+        // Get current GPS position from device
+        function getCurrentLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation not supported by your browser. Try Chrome or Safari.');
+                return;
+            }
+
+            const btn = document.getElementById('get-location-btn');
+            btn.textContent = '📍 Getting...';
+            btn.classList.add('recording');
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    currentLocation = [position.coords.latitude, position.coords.longitude];
+                    updateGPSDisplay();
+                    
+                    // Center map on user's location
+                    map.setView(currentLocation, 14);
+                    
+                    // Add marker for current location
+                    L.marker(currentLocation).addTo(map)
+                        .bindPopup('📍 You are here').openPopup();
+                    
+                    btn.textContent = '📍 Got Location!';
+                    setTimeout(() => {
+                        btn.textContent = '📍 Get My Location';
+                        btn.classList.remove('recording');
+                    }, 2000);
+                },
+                (error) => {
+                    alert('GPS failed: ' + error.message + '. Try clicking on the map instead.');
+                    btn.textContent = '📍 Get My Location';
+                    btn.classList.remove('recording');
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        // Update GPS display in UI
+        function updateGPSDisplay() {
+            if (currentLocation) {
+                document.getElementById('gps-display').textContent = 
+                    `${currentLocation[0].toFixed(6)}, ${currentLocation[1].toFixed(6)}`;
+                
+                // Also set the log-GPS field for next entry
+                document.getElementById('log-gps').textContent = 
+                    `${currentLocation[0].toFixed(4)}°, ${currentLocation[1].toFixed(4)}°`;
+            } else {
+                document.getElementById('gps-display').textContent = 'Not yet determined';
+            }
+        }
+
+        // Use current location for next log entry
+        function useCurrentLocationForLog() {
+            if (!currentLocation) {
+                alert('Get your GPS position first!');
+                return;
+            }
+            
+            const lat = currentLocation[0].toFixed(4);
+            const lon = currentLocation[1].toFixed(4);
+            
+            // Populate location input with coordinates
+            document.getElementById('location-input').value = `${lat}°, ${lon}°`;
+            document.getElementById('log-gps').textContent = `✓ Auto-filled: ${lat}°, ${lon}°`;
+        }
+
+        // Add marker to map for a catch
+        function addMapMarker(entry) {
+            if (!entry.lat || !entry.lng) return;
+
+            const latlng = [entry.lat, entry.lng];
+            
+            // Color by status
+            let color = '#3498db'; // blue (general)
+            if (entry.status === 'kept') color = '#27ae60'; // green
+            else if (entry.status === 'released') color = '#e67e22'; // orange
+            
+            const marker = L.circleMarker(latlng, {
+                radius: 10,
+                fillColor: color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+
+            // Popup content
+            const popupContent = `
+                <strong>${entry.species.toUpperCase()}</strong><br>
+                ${entry.status}<br>
+                Fly: ${entry.pattern || 'Unknown'}<br>
+                Time: ${new Date(entry.timestamp).toLocaleTimeString()}<br>
+                <small>${entry.lat.toFixed(4)}, ${entry.lng.toFixed(4)}</small>
+            `;
+
+            marker.bindPopup(popupContent);
+            markers.push(marker);
+        }
+
+        // Clear all map markers (except user location)
+        function clearMapMarkers() {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+        }
+
+        // Set filter for what to show on map
+        function setMapFilter(filter, btn) {
+            mapFilter = filter;
+            
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Reload markers based on filter
+            refreshMapMarkers();
+        }
+
+        // Refresh map with current filter
+        function refreshMapMarkers() {
+            clearMapMarkers();
+            
+            fishingLogs.forEach(entry => {
+                let show = true;
+                
+                if (mapFilter === 'trout' && !entry.species.toLowerCase().includes('trout')) {
+                    show = false;
+                }
+                if (mapFilter === 'kept' && entry.status !== 'kept') {
+                    show = false;
+                }
+                if (mapFilter === 'released' && entry.status !== 'released') {
+                    show = false;
+                }
+
+                if (show) addMapMarker(entry);
+            });
+        }
+
+        // Zoom to area with most catches (hot spots)
+        function zoomToHotSpots() {
+            const catches = fishingLogs.filter(l => l.lat && l.lng);
+            
+            if (catches.length === 0) {
+                alert('No catch locations recorded yet!');
+                return;
+            }
+
+            // Group by rough location (within 0.1 degrees)
+            const clusters = {};
+            catches.forEach(entry => {
+                const key = `${Math.round(entry.lat * 10)},${Math.round(entry.lng * 10)}`;
+                if (!clusters[key]) clusters[key] = [];
+                clusters[key].push(entry);
+            });
+
+            // Find largest cluster
+            let maxCluster = null;
+            Object.values(clusters).forEach(cluster => {
+                if (cluster.length > 2 && (!maxCluster || cluster.length > maxCluster.length)) {
+                    maxCluster = cluster;
+                }
+            });
+
+            if (maxCluster) {
+                const bounds = L.latLngBounds(maxCluster.map(c => [c.lat, c.lng]));
+                map.fitBounds(bounds);
+                
+                document.getElementById('hot-spots-display').innerHTML = `
+                    <div class="hot-spot-card">
+                        <strong>🔥 Hot Spot Found!</strong><br>
+                        <span class="hot-spot-count">${maxCluster.length}</span> fish caught in this area<br>
+                        <small>Try returning here during similar conditions.</small>
+                    </div>
+                `;
+            } else {
+                // Just zoom to all points
+                const bounds = L.latLngBounds(catches.map(c => [c.lat, c.lng]));
+                map.fitBounds(bounds);
+            }
+        }
+
+        function analyzeHotSpots() {
+            const display = document.getElementById('hot-spots-display');
+            const catches = fishingLogs.filter(l => l.lat && l.lng);
+
+            if (catches.length < 5) {
+                display.innerHTML = '<p style="color:#666;"><em>Add 5+ catch entries to see your productive hot spots.</em></p>';
+                return;
+            }
+
+            // Simple clustering by grid cell
+            const clusters = {};
+            catches.forEach(entry => {
+                const key = `${Math.round(entry.lat * 10)},${Math.round(entry.lng * 10)}`;
+                if (!clusters[key]) clusters[key] = { count: 0, species: {}, flies: {} };
+                clusters[key].count++;
+                
+                // Track species at this spot
+                const sp = entry.species || 'Unknown';
+                clusters[key].species[sp] = (clusters[key].species[sp] || 0) + 1;
+
+                // Track flies that worked
+                const fly = `${entry.pattern || '?'} (#${entry.size || '?'})`;
+                clusters[key].flies[fly] = (clusters[key].flies[fly] || 0) + 1;
+            });
+
+            // Sort by catch count
+            const sorted = Object.entries(clusters).sort((a, b) => b[1].count - a[1].count);
+            const top3 = sorted.slice(0, 3);
+
+            let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+            
+            top3.forEach(([coords, data], i) => {
+                const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+                html += `
+                    <div style="background:#fff; padding:12px; border-radius:8px; border-left:3px solid var(--accent);">
+                        ${rank} <strong>${data.count} catches at this spot</strong><br>
+                        Top species: ${Object.entries(data.species).sort((a,b) => b[1] - a[1])[0]?.[0] || 'N/A'}<br>
+                        Best fly: ${Object.entries(data.flies).sort((a,b) => b[1] - a[1])[0]?.[0] || 'N/A'}
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            display.innerHTML = html;
+        }
+
+        // ==========================================
+        // FISHING LOG ENGINE
         // ==========================================
         
         let fishingLogs = [];
-        let voiceRecognition = null;
-        let isListening = false;
-        
-        // Initialize session date
-        document.getElementById('session-date').textContent = new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' 
-        });
 
-        // Load logs from localStorage on page load
         function loadLogs() {
             const saved = localStorage.getItem('fishingLogs');
             if (saved) {
                 fishingLogs = JSON.parse(saved);
-                updateLogDisplay();
-                updateStats();
+                refreshMapMarkers();
+                analyzeHotSpots();
             }
         }
 
-        // Save logs to localStorage
         function saveLogs() {
             localStorage.setItem('fishingLogs', JSON.stringify(fishingLogs));
         }
 
-        // Add a log entry
         function addLogEntry(data = null) {
             const status = data?.status || document.getElementById('log-status').value;
             const species = data?.species || document.getElementById('log-species').value;
-            const pattern = data?.pattern || document.getElementById('log-fly-pattern').value;
-            const size = data?.size || document.getElementById('log-fly-size').value;
-            const color = data?.color || document.getElementById('log-fly-color').value;
-            const length = data?.length || document.getElementById('log-length').value;
             
-            if (!species) {
-                alert('Please select a fish species!');
-                return;
-            }
+            if (!species) { alert('Please select a fish species!'); return; }
 
-            // Get current location from input or default
-            const location = document.getElementById('location-input').value || 'Unknown';
+            // Get location (from GPS or manual input)
+            let lat = null, lng = null;
+            const locText = document.getElementById('location-input').value || '';
+            
+            // Try to extract coordinates from text like "39.74°, -105.02°"
+            const coordMatch = locText.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
+            if (coordMatch) {
+                lat = parseFloat(coordMatch[1]);
+                lng = parseFloat(coordMatch[2]);
+            } else if (currentLocation) {
+                // Use current GPS if available
+                lat = currentLocation[0];
+                lng = currentLocation[1];
+                document.getElementById('location-input').value = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
+            }
 
             const entry = {
                 id: Date.now(),
                 timestamp: new Date().toISOString(),
                 status,
                 species,
-                pattern: pattern || 'Unspecified',
-                size: size || 'Any',
-                color: color || 'Any',
-                length: length || null,
-                location
+                pattern: data?.pattern || document.getElementById('log-fly-pattern').value || 'Unspecified',
+                size: data?.size || document.getElementById('log-fly-size').value || 'Any',
+                color: data?.color || document.getElementById('log-fly-color').value || 'Any',
+                length: data?.length || document.getElementById('log-length').value || null,
+                lat, lng,
+                location: locText || (lat && lng ? `${lat.toFixed(4)}°, ${lng.toFixed(4)}°` : 'Unknown')
             };
 
             fishingLogs.push(entry);
             saveLogs();
-            
-            // Reset form but keep fly selection (you probably want to log multiple fish on same fly)
+
+            // Reset length but keep fly selection
             document.getElementById('log-length').value = '';
-            document.getElementById('log-status').value = 'hooked';
-            
+
             updateLogDisplay();
             updateStats();
-            analyzeBestFlies();
+            addMapMarker(entry);
+            analyzeHotSpots();
 
-            // Visual feedback
-            alert(`✓ Logged: ${status} ${species} on ${pattern || '(unspecified)'}`);
+            alert(`✓ Logged: ${status} ${species}`);
         }
 
-        // Update log display
+        function presetLog(action) {
+            let status = 'hooked';
+            switch(action) {
+                case 'land': status = 'landed'; break;
+                case 'release': status = 'released'; break;
+                case 'keep': status = 'kept'; break;
+            }
+
+            addLogEntry({ 
+                status,
+                species: document.getElementById('log-species').value || '',
+                pattern: document.getElementById('log-fly-pattern').value || 'Unknown',
+                size: document.getElementById('log-fly-size').value || 'Any'
+            });
+        }
+
         function updateLogDisplay() {
             const container = document.getElementById('log-entries');
             
             if (fishingLogs.length === 0) {
-                container.innerHTML = '<p style="color:#666; font-style:italic;"><em>No entries yet. Start fishing and log your first fish!</em></p>';
+                container.innerHTML = '<p style="color:#666; font-style:italic;"><em>No entries yet. Start fishing!</em></p>';
                 return;
             }
 
-            // Show most recent first
-            const sorted = [...fishingLogs].sort((a, b) => b.id - a.id);
+            const sorted = [...fishingLogs].sort((a, b) => b.id - a.id).slice(0, 10); // Show last 10
             
             container.innerHTML = sorted.map(entry => {
                 const date = new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 const statusClass = entry.status === 'kept' ? 'status-kept' : 'status-released';
-                
+
                 return `
                     <div class="fish-entry">
                         <div class="fish-header">
@@ -668,19 +791,17 @@
                         </div>
                         <div style="font-size:0.9em; color:#666;">
                             Fly: ${entry.pattern} (#${entry.size}, ${entry.color}) | 
-                            Length: ${entry.length || 'N/A'}" | 
-                            Location: ${entry.location}
+                            Loc: ${entry.lat ? entry.lat.toFixed(2) + '°' : 'Unknown'}
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        // Update statistics
         function updateStats() {
             const stats = {
                 hooked: fishingLogs.filter(l => l.status === 'hooked').length,
-                landed: fishingLogs.filter(l => l.status === 'landed' || l.status === 'released' || l.status === 'kept').length,
+                landed: fishingLogs.filter(l => ['landed', 'released', 'kept'].includes(l.status)).length,
                 released: fishingLogs.filter(l => l.status === 'released').length,
                 kept: fishingLogs.filter(l => l.status === 'kept').length
             };
@@ -691,45 +812,6 @@
             document.getElementById('stat-kept').textContent = stats.kept;
         }
 
-        // Analyze best flies
-        function analyzeBestFlies() {
-            const display = document.getElementById('best-fly-display');
-            
-            if (fishingLogs.length < 3) {
-                display.innerHTML = '<p><em>Add 3+ fish entries to see which flies are most productive.</em></p>';
-                return;
-            }
-
-            // Count catches by fly pattern
-            const flyStats = {};
-            const landed = fishingLogs.filter(l => l.status === 'kept' || l.status === 'released');
-            
-            landed.forEach(entry => {
-                const key = `${entry.pattern} (#${entry.size}, ${entry.color})`;
-                flyStats[key] = (flyStats[key] || 0) + 1;
-            });
-
-            // Sort by count
-            const sorted = Object.entries(flyStats).sort((a, b) => b[1] - a[1]);
-            
-            if (sorted.length === 0) {
-                display.innerHTML = '<p><em>No landed fish yet. Keep fishing!</em></p>';
-                return;
-            }
-
-            const top3 = sorted.slice(0, 3);
-            
-            let html = `<div style="display:flex; flex-direction:column; gap:8px;">`;
-            top3.forEach(([fly, count], i) => {
-                const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
-                html += `<div>${rank} <strong>${fly}</strong> — ${count} fish</div>`;
-            });
-            html += `</div>`;
-
-            display.innerHTML = html;
-        }
-
-        // Export logs as JSON
         function exportLogs() {
             const dataStr = JSON.stringify(fishingLogs, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
@@ -740,192 +822,22 @@
             a.download = `fishing-log-${new Date().toISOString().split('T')[0]}.json`;
             a.click();
             
-            alert(`Exported ${fishingLogs.length} log entries to JSON file!`);
-        }
-
-        // Clear session (but keep in localStorage)
-        function clearSession() {
-            if (confirm('Clear all logs for this session? This can be undone by refreshing.')) {
-                fishingLogs = [];
-                updateLogDisplay();
-                updateStats();
-                analyzeBestFlies();
-            }
-        }
-
-        // Preset log buttons
-        function presetLog(action) {
-            let status = 'hooked';
-            switch(action) {
-                case 'land': status = 'landed'; break;
-                case 'release': status = 'released'; break;
-                case 'keep': status = 'kept'; break;
-                case 'missed': status = 'missed'; break;
-            }
-            
-            document.getElementById('log-status').value = status;
-            // Auto-add with minimal info (user can edit fly details)
-            addLogEntry({ 
-                status,
-                species: document.getElementById('log-species').value || '',
-                pattern: document.getElementById('log-fly-pattern').value || 'Unknown',
-                size: document.getElementById('log-fly-size').value || 'Any',
-                color: document.getElementById('log-fly-color').value || 'Any'
-            });
+            alert(`Exported ${fishingLogs.length} entries with GPS coordinates!`);
         }
 
         // ==========================================
-        // VOICE COMMAND ENGINE (NEW!)
-        // ==========================================
-        
-        function toggleVoice() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('🎤 Voice commands require a modern browser (Chrome/Edge work best). Try manual entry!');
-                return;
-            }
-
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            
-            if (!voiceRecognition) {
-                voiceRecognition = new SpeechRecognition();
-                voiceRecognition.continuous = false; // Listen once per click
-                voiceRecognition.interimResults = true;
-                
-                voiceRecognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript.toLowerCase();
-                    document.getElementById('voice-text').textContent = `"${transcript}"`;
-                    
-                    if (event.results[0].isFinal) {
-                        parseVoiceCommand(transcript);
-                    }
-                };
-
-                voiceRecognition.onerror = (event) => {
-                    console.log('Voice error:', event.error);
-                    document.getElementById('voice-text').textContent = `Error: ${event.error}`;
-                };
-
-                voiceRecognition.onend = () => {
-                    isListening = false;
-                    const btn = document.getElementById('voice-btn');
-                    btn.textContent = 'Start Listening';
-                    btn.classList.remove('recording');
-                    document.getElementById('voice-text').classList.remove('active');
-                };
-            }
-
-            if (isListening) {
-                voiceRecognition.stop();
-            } else {
-                voiceRecognition.start();
-                isListening = true;
-                const btn = document.getElementById('voice-btn');
-                btn.textContent = 'Stop Listening';
-                btn.classList.add('recording');
-                document.getElementById('voice-text').classList.add('active');
-            }
-        }
-
-        function parseVoiceCommand(transcript) {
-            // Simple natural language parsing
-            const words = transcript.split(' ');
-            
-            // Detect status keywords
-            let status = null;
-            if (transcript.includes('hooked')) status = 'hooked';
-            else if (transcript.includes('landed') || transcript.includes('caught')) status = 'landed';
-            else if (transcript.includes('released') || transcript.includes('release')) status = 'released';
-            else if (transcript.includes('kept') || transcript.includes('keep')) status = 'kept';
-            else if (transcript.includes('missed')) status = 'missed';
-
-            // Detect species
-            let species = null;
-            const speciesMap = {
-                'rainbow': 'Rainbow Trout',
-                'brown': 'Brown Trout',
-                'brook': 'Brook Trout',
-                'cutthroat': 'Cutthroat Trout',
-                'grayling': 'Arctic Grayling',
-                'bass': 'Bass'
-            };
-            
-            for (const [key, value] of Object.entries(speciesMap)) {
-                if (transcript.includes(key)) species = key;
-            }
-
-            // Detect fly size (number followed by "size" or just a number 2-20)
-            let size = 'Any';
-            const sizeMatch = transcript.match(/(\d{1,2})/);
-            if (sizeMatch && parseInt(sizeMatch[1]) >= -1 && parseInt(sizeMatch[1]) <= 20) {
-                size = sizeMatch[1];
-            }
-
-            // Detect fly pattern (words between numbers or "pattern" keyword)
-            let pattern = 'Unspecified';
-            if (transcript.includes('elk hair caddis')) pattern = 'Elk Hair Caddis';
-            else if (transcript.includes('pheasant tail')) pattern = 'Pheasant Tail';
-            else if (transcript.includes('woolly bugger')) pattern = 'Woolly Bugger';
-            else if (transcript.includes('pmd')) pattern = 'PMD Dun';
-            else if (transcript.includes('baetis') || transcript.includes('bwo')) pattern = 'Blue Winged Olive';
-            else if (transcript.includes('caddis')) pattern = 'Caddis';
-
-            // Detect color
-            let color = 'Any';
-            ['brown', 'olive', 'gray', 'black', 'white', 'tan', 'gold'].forEach(c => {
-                if (transcript.includes(c)) color = c;
-            });
-
-            // Detect length
-            let length = null;
-            const lenMatch = transcript.match(/(\d{1,2})\s*(inch|")/);
-            if (lenMatch) length = lenMatch[1];
-
-            // Add the entry if we found at least status and species
-            if (status && species) {
-                addLogEntry({
-                    status,
-                    species,
-                    pattern,
-                    size,
-                    color,
-                    length: parseInt(length) || null
-                });
-                
-                document.getElementById('voice-text').textContent = `✓ Logged! ${transcript}`;
-            } else if (status) {
-                // At least log the status
-                addLogEntry({
-                    status,
-                    species: document.getElementById('log-species').value || '',
-                    pattern,
-                    size,
-                    color,
-                    length: parseInt(length) || null
-                });
-                
-                document.getElementById('voice-text').textContent = `✓ Logged! (no species detected)`;
-            } else {
-                document.getElementById('voice-text').textContent = `Couldn't parse. Try: "Hooked a rainbow on size 12 elk hair"`;
-            }
-        }
-
-        // ==========================================
-        // REGULATIONS DATA
+        // REGULATIONS (Simplified)
         // ==========================================
         
         const speciesByState = {
-            'CO': ['Rainbow Trout', 'Brook Trout', 'Brown Trout', 'Cutthroat Trout', 'Arctic Grayling'],
-            'MT': ['Rainbow Trout', 'Brook Trout', 'Brown Trout', 'Cutthroat Trout', 'Bull Trout', 'Grayling'],
-            'WY': ['Rainbow Trout', 'Brook Trout', 'Brown Trout', 'Cutthroat Trout', 'Golden Trout'],
-            'VT': ['Brook Trout', 'Brown Trout', 'Rainbow Trout', 'Landlocked Salmon'],
-            'ME': ['Brook Trout', 'Landlocked Salmon', 'Atlantic Salmon', 'Bass'],
-            'OR': ['Rainbow Trout', 'Steelhead', 'Chinook Salmon', 'Coho Salmon', 'Bull Trout'],
-            'CA': ['Rainbow Trout', 'Brown Trout', 'Golden Trout', 'Chinook Salmon', 'Stripped Bass']
+            'CO': ['Rainbow Trout', 'Brook Trout', 'Brown Trout'],
+            'MT': ['Rainbow Trout', 'Brook Trout', 'Brown Trout', 'Cutthroat Trout'],
+            'WY': ['Rainbow Trout', 'Brook Trout', 'Brown Trout']
         };
 
         const regulations = {
-            'CO-Rainbow Trout': { min: 7, max: null, daily: 2, total: 4, season: 'All year', special: ['Catch-and-release only on some rivers'], license: 'Standard freshwater' },
-            'MT-Bull Trout': { min: 0, max: null, daily: 0, total: 0, season: 'All year', special: ['CATCH-AND-RELEASE ONLY'], license: 'Standard freshwater + trout stamp' }
+            'CO-Rainbow Trout': { min: 7, daily: 2, total: 4, season: 'All year' },
+            'MT-Brown Trout': { min: 7, max: 16, daily: 2, total: 4, season: 'Varies by water' }
         };
 
         function updateSpecies() {
@@ -956,12 +868,10 @@
                 return;
             }
             
-            const minDisplay = reg.min === 0 ? 'None' : `${reg.min}"`;
             let html = `<div class="result-box success">`;
             html += `  <strong>${species} (${state})</strong><br>`;
-            html += `  Min: ${minDisplay} | Daily: ${reg.daily} | Total: ${reg.total}<br>`;
-            html += `  Season: ${reg.season}`;
-            if (reg.special.length) html += `<br>⚠️ ${reg.special[0]}`;
+            html += `  Min: ${reg.min}" | Daily: ${reg.daily}<br>Season: ${reg.season}`;
+            if (reg.max) html += `<br>Slot: Up to ${reg.max}"`;
             html += `</div>`;
             
             document.getElementById('reg-display').innerHTML = html;
@@ -976,85 +886,16 @@
         }
 
         // ==========================================
-        // KNOT DATA
-        // ==========================================
-        const knots = {
-            'clinch': { title: 'Classic Clinch Knot', steps: '1. Thread line through eye (5-6 inches). 2. Wrap 5-7 times around standing line. 3. Pass tag end through first loop near eye. 4. Wet and pull tight. 5. Trim tag.' },
-            'improved-clinch': { title: 'Improved Clinch Knot', steps: '1. Same as classic, but after step 2, pass tag through the NEW loop you just made (not the first one). 2. Then through the first loop. 3. Wet and pull tight.' },
-            'palomar': { title: 'Palomar Knot', steps: '1. Double line, thread eye. 2. Tie simple overhand knot (line doubles through it). 3. Pass fly through loop below. 4. Pull both ends tight. 5. Trim.' },
-            'double-surgeon': { title: 'Double Surgeon\'s Knot', steps: '1. Overlap leader and line (6 inches). 2. Tie simple overhand knot with BOTH lines. 3. Repeat, tying second overhand. 4. Pull tight from both ends. 5. Trim tags.' }
-        };
-
-        function showKnot(knotName) {
-            const knot = knots[knotName];
-            document.getElementById('knot-title').textContent = knot.title;
-            document.getElementById('knot-steps').textContent = knot.steps;
-            document.getElementById('knot-detail').style.display = 'block';
-        }
-
-        // ==========================================
-        // FLY DATA
-        // ==========================================
-        const flies = {
-            river: { spring: ['#14-#18 BWO', '#16 PMD Nymph', '#12 Stonefly'], summer: ['#12 Caddis', '#10 Grasshopper', '#16 Elk Hair Caddis'] },
-            lake: { spring: ['Bead-head nymphs', 'Euro-nymphs'], summer: ['Woolly Bugger', 'Damsel nymph', '#14 Caddis'] },
-            stream: { spring: ['#20-#22 Midge', '#16 BWO dry'], summer: ['#18-#20 PMD', 'Terrestrials (ants)'] }
-        };
-
-        function recommendFlies() {
-            const water = document.getElementById('water-type').value;
-            const season = document.getElementById('season').value;
-            
-            let recommendations = flies[water][season] || [];
-            
-            const html = `<div class="result-box">
-                <h3>Recommended for ${water} in ${season}</h3>
-                <div>${recommendations.map(f => `<span class="tag">${f}</span>`).join('')}</div>
-            </div>`;
-            document.getElementById('fly-results').innerHTML = html;
-        }
-
-        // ==========================================
-        // PHYSICS CALCULATOR
-        // ==========================================
-        function calculateTrajectory() {
-            const angleDeg = parseFloat(document.getElementById('angle').value);
-            const v0 = parseFloat(document.getElementById('speed').value);
-            
-            const g = 32.174;
-            const rad = angleDeg * Math.PI / 180;
-            
-            const time = (2 * v0 * Math.sin(rad)) / g;
-            const distance = v0 * Math.cos(rad) * time;
-            const maxHeight = (Math.pow(v0, 2) * Math.pow(Math.sin(rad), 2)) / (2 * g);
-            
-            document.getElementById('distance').textContent = distance.toFixed(1);
-            document.getElementById('max-height').textContent = maxHeight.toFixed(1);
-            document.getElementById('flight-time').textContent = time.toFixed(2);
-            document.getElementById('physics-result').style.display = 'block';
-        }
-
-        // ==========================================
-        // TACKLE WEIGHT CALCULATOR
-        // ==========================================
-        function calculateTackle() {
-            const rodWeight = parseInt(document.getElementById('rod-weight').value);
-            const flySize = parseInt(document.getElementById('fly-size').value);
-            
-            let recommendation = '';
-            if (rodWeight <= 4 && flySize >= 6) {
-                recommendation = `⚠️ That's heavy for a ${rodWeight}wt rod!`;
-            } else {
-                recommendation = `✅ Good match!`;
-            }
-            
-            document.getElementById('tackle-result').innerHTML = `<strong>${recommendation}</strong>`;
-        }
-
-        // ==========================================
         // INITIALIZATION
         // ==========================================
-        loadLogs();
+        
+        document.getElementById('session-date').textContent = new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' 
+        });
+
+        // Initialize map when page loads (wait for Leaflet to be ready)
+        window.addEventListener('load', initMap);
+
     </script>
 </body>
 </html>
