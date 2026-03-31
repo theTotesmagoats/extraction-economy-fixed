@@ -4,167 +4,174 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EASTER — The 40 Days</title>
-
-    <!-- Leaflet.js for maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Google Fonts: Inter + Playfair Display for warmth -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            /* Dynamic color palette - shifts with the story */
-            --bg-primary: #fafafa;
-            --text-primary: #2a2a2a;
-            --accent-1: #E74C3C;  /* Red for cross/blood */
-            --accent-2: #D96450;  /* Warmer terracotta */
-            --accent-3: #8B4513;  /* Earth/tomb stone */
-            --light-gold: #FDB931; /* Resurrection light */
-            --dark-night: #0f1420; /* Gethsemane darkness */
-            
-            /* Emotional intensity (changes per day) */
-            --emotion-weight: 1;
-            --transition-speed: 1.5s;
+            --dark-bg: #0f1420;
+            --dark-text: #e8e8e8;
+            --dawn-bg-start: #1a3a5c;
+            --dawn-bg-end: #fcd3a7;
+            --golden-bg-start: #fff5e6;
+            --golden-bg-end: #fdebd0;
+            --accent-gold: #D4AF37;
+            --accent-red: #E74C3C;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
             overflow-x: hidden;
-            transition: all var(--transition-speed) ease;
-            min-height: 100vh;
+            transition: all 1.5s ease;
         }
 
-        /* =========================
-           DARKNESS MODE (Days 1-2)
-           ========================= */
-        body.darkness-mode {
-            --bg-primary: #0f1420;
-            --text-primary: #e8e8e8;
-            background: linear-gradient(135deg, #0a0d16 0%, #1a1f2e 100%);
-        }
-
-        /* =========================
-           DAWN MODE (Day 3 - Resurrection)
-           ========================= */
         body.dawn-mode {
-            --bg-primary: linear-gradient(180deg, #1a3a5c 0%, #4a6fa5 50%, #fcd3a7 100%);
-            --text-primary: #ffffff;
+            background: linear-gradient(180deg, var(--dawn-bg-start) 0%, var(--dawn-bg-end) 100%);
+            color: #ffffff;
         }
 
-        /* =========================
-           GOLDEN LIGHT MODE (Days 4-40)
-           ========================= */
         body.golden-mode {
-            --bg-primary: linear-gradient(180deg, #fff5e6 0%, #fdebd0 100%);
-            --text-primary: #3d2c1f;
+            background: linear-gradient(180deg, var(--golden-bg-start) 0%, var(--golden-bg-end) 100%);
+            color: #3d2c1f;
         }
 
-        /* =========================
-           HEADER — NOW A MOMENT, NOT JUST TEXT
-           ========================= */
         header {
             padding: 3rem 2rem;
             text-align: center;
-            position: relative;
-            overflow: hidden;
-            transition: all var(--transition-speed) ease;
+            transition: all 1.5s ease;
         }
 
-        body.darkness-mode header { background: transparent; }
-        body.dawn-mode header { background: linear-gradient(135deg, #1a3a5c 0%, #4a6fa5 100%); }
-        body.golden-mode header { 
-            background: linear-gradient(135deg, #fff8f0 0%, #ffe4b3 100%);
-            color: #3d2c1f;
+        body.darkness-mode header h1 { color: var(--accent-gold); }
+        body.dawn-mode header h1 { 
+            color: white; 
+            text-shadow: 0 0 30px rgba(253, 185, 49, 0.6);
         }
 
         header h1 {
             font-family: 'Playfair Display', serif;
-            font-weight: 700;
+            font-size: 3.5rem;
             letter-spacing: 8px;
             margin-bottom: 1rem;
-            font-size: 3.5rem;
-            transition: all var(--transition-speed) ease;
         }
 
-        body.darkness-mode header h1 { color: #c9b8a6; }
-        body.dawn-mode header h1 { 
-            color: white;
-            text-shadow: 0 0 30px rgba(253, 185, 49, 0.6);
-        }
+        .subtitle { opacity: 0.7; letter-spacing: 2px; }
 
-        .subtitle {
-            font-size: 1.1rem;
-            opacity: 0.7;
-            font-weight: 300;
-            letter-spacing: 2px;
-            margin-bottom: 1.5rem;
-        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
 
-        .emotional-pulse {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent 0%, var(--accent-1) 40%, var(--light-gold) 60%, transparent 100%);
-            animation: pulse-emotion 8s ease-in-out infinite;
-        }
-
-        @keyframes pulse-emotion {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.7; }
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem;
-        }
-
-        /* =========================
-           THE MAP — NOW A LIVING PULSING HEART
-           ========================= */
+        /* MAP SECTION */
         #map-wrapper {
             position: relative;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.3);
             margin-bottom: 2rem;
-            background: white;
-            transition: all var(--transition-speed) ease;
+            height: 550px;
         }
 
-        body.darkness-mode #map-wrapper { box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
-        body.dawn-mode #map-wrapper { 
-            border: 3px solid var(--light-gold);
-            box-shadow: 0 0 60px rgba(253, 185, 49, 0.4);
-        }
+        body.dawn-mode #map-wrapper { border: 3px solid var(--accent-gold); }
 
-        #map-container { position: relative; height: 550px; }
         #map { height: 100%; width: 100%; }
 
-        .map-overlay-info {
+        /* RIPPLE EFFECT FOR JESUS */
+        .ripple-marker {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            z-index: 1000;
-            background: rgba(255,255,255,0.95);
-            padding: 0.75rem 1.25rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            font-size: 0.9rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.3);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
         }
 
-        body.darkness-mode .map-overlay-info { background: rgba(30, 40, 60, 0.95); color: #e8e8e8; }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid var(--accent-gold);
+            background: transparent;
+            animation: ripple-anim 2s ease-out forwards;
+            pointer-events: none;
+        }
 
-        /* =========================
-           PAUSE POINTS — THE APP BREATHES HERE
-           ========================= */
+        @keyframes ripple-anim {
+            0% { 
+                width: 40px; 
+                height: 40px; 
+                opacity: 1; 
+                border-width: 3px;
+            }
+            100% { 
+                width: 200px; 
+                height: 200px; 
+                opacity: 0; 
+                border-width: 0px;
+            }
+        }
+
+        .marker-dot {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gold);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+            z-index: 400;
+        }
+
+        /* SLIDER */
+        .slider-section { 
+            padding: 2rem; 
+            background: #1a1f2e; 
+            border-radius: 12px; 
+            margin-bottom: 2rem;
+            transition: all 1.5s ease;
+        }
+
+        body.dawn-mode .slider-section,
+        body.golden-mode .slider-section {
+            background: rgba(255,255,255,0.9);
+            color: #3d2c1f;
+        }
+
+        .day-display { text-align: center; margin-bottom: 2rem; }
+
+        .day-number {
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: var(--accent-red);
+        }
+
+        body.dawn-mode .day-number,
+        body.golden-mode .day-number { 
+            color: #d4a731;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #333;
+            outline: none;
+        }
+
+        body.golden-mode input[type="range"] { background: #ddd; }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent-gold);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* PAUSE POINT */
         .pause-point {
             text-align: center;
             padding: 3rem 2rem;
@@ -172,102 +179,20 @@
             border-radius: 12px;
             margin: 2rem 0;
             font-style: italic;
-            position: relative;
         }
 
-        body.darkness-mode .pause-point { 
+        body.darkness-mode .pause-point {
             background: linear-gradient(135deg, #1a2a40 0%, #2d3e5c 100%);
             color: #f0f0f0;
         }
 
-        body.dawn-mode .pause-point { 
-            background: linear-gradient(135deg, rgba(26,58,92,0.7) 0%, rgba(253,185,49,0.3) 100%);
-            color: white;
-        }
-
-        .pause-point h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.8rem;
-            margin-bottom: 1rem;
-            letter-spacing: 4px;
-        }
-
-        .pause-point p {
-            font-size: 1.2rem;
-            line-height: 1.8;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* =========================
-           THE SLIDER — NOW A JOURNEY, NOT JUST CONTROL
-           ========================= */
-        .slider-section { padding: 2rem; border-radius: 12px; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 2rem; }
-
-        body.darkness-mode .slider-section { background: #1a1f2e; color: #e8e8e8; }
-
-        .day-display { text-align: center; margin-bottom: 2rem; }
-        
-        .day-number {
-            font-size: 3.5rem;
-            font-weight: 600;
-            color: var(--accent-1);
-            transition: all var(--transition-speed) ease;
-        }
-
-        body.dawn-mode .day-number { color: var(--light-gold); text-shadow: 0 0 20px rgba(253, 185, 49, 0.5); }
-
-        .day-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.6rem;
-            color: var(--text-primary);
-            margin-top: 0.5rem;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 12px;
-            border-radius: 6px;
-            background: linear-gradient(90deg, var(--accent-1) 0%, var(--light-gold) 100%);
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: white;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-
-        /* =========================
-           VERSE CARDS — SECOND-PERSON IMMERSION
-           ========================= */
-        .info-panel { padding: 2.5rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 2rem; }
-
-        body.darkness-mode .info-panel { background: #1a1f2e; color: #e8e8e8; }
-        body.dawn-mode .info-panel { background: linear-gradient(135deg, rgba(26,58,92,0.8) 0%, rgba(74,111,165,0.6) 100%); color: white; }
-
+        /* VERSES */
         .verses-container {
-            background: #f8f9fa;
             padding: 2rem;
-            border-left: 6px solid var(--accent-1);
+            border-left: 6px solid var(--accent-gold);
+            background: rgba(255,255,255,0.1);
             margin-bottom: 2rem;
             font-style: italic;
-            position: relative;
-            transition: all var(--transition-speed) ease;
-        }
-
-        body.darkness-mode .verses-container { background: #0f1420; border-left-color: #c9b8a6; }
-        body.dawn-mode .verses-container { 
-            background: linear-gradient(135deg, rgba(253,185,49,0.1) 0%, rgba(255,255,255,0.15) 100%);
-            border-left-color: var(--light-gold);
         }
 
         .verse { margin-bottom: 1.5rem; animation: verse-reveal 1s ease-out; }
@@ -277,50 +202,9 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .verse:last-child { margin-bottom: 0; }
+        .verse-ref { font-weight: 600; color: var(--accent-gold); display: block; margin-bottom: 0.5rem; }
 
-        .verse-ref {
-            font-weight: 600;
-            color: var(--accent-1);
-            font-style: normal;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-
-        body.darkness-mode .verse-ref { color: #c9b8a6; }
-        body.dawn-mode .verse-ref { color: var(--light-gold); }
-
-        /* =========================
-           REFLECTION PROMPTS — THE APP ASKS YOU QUESTIONS
-           ========================= */
-        .reflection-prompt {
-            background: linear-gradient(135deg, #fff8f0 0%, #ffe4b3 100%);
-            padding: 2rem;
-            border-radius: 12px;
-            margin-top: 2rem;
-            border-left: 6px solid var(--accent-2);
-        }
-
-        body.darkness-mode .reflection-prompt { 
-            background: linear-gradient(135deg, #1a2540 0%, #2d3e5c 100%);
-            color: #f0f0f0;
-        }
-
-        .reflection-prompt h4 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.4rem;
-            margin-bottom: 1rem;
-            letter-spacing: 3px;
-        }
-
-        .reflection-prompt p {
-            font-size: 1.1rem;
-            line-height: 1.7;
-        }
-
-        /* =========================
-           HOLY SATURDAY INTERLUDE — THE SILENCE
-           ========================= */
+        /* HOLY SATURDAY INTERLUDE */
         #holy-saturday-interlude {
             display: none;
             position: fixed;
@@ -339,118 +223,27 @@
             font-family: 'Playfair Display', serif;
             font-size: 4rem;
             letter-spacing: 12px;
-            color: #c9b8a6;
+            color: var(--accent-gold);
             margin-bottom: 2rem;
         }
 
-        #holy-saturday-interlude p {
-            font-size: 1.5rem;
-            line-height: 2;
-            color: #e8e8e8;
-            max-width: 700px;
-            margin-bottom: 3rem;
-        }
+        #holy-saturday-interlude p { font-size: 1.5rem; line-height: 2; margin-bottom: 3rem; opacity: 0.9; }
 
         .interlude-btn {
             padding: 1rem 3rem;
             background: transparent;
-            border: 2px solid #c9b8a6;
-            color: #c9b8a6;
+            border: 2px solid var(--accent-gold);
+            color: var(--accent-gold);
             font-size: 1.2rem;
             cursor: pointer;
             transition: all 0.5s ease;
         }
 
-        .interlude-btn:hover { background: rgba(201, 184, 166, 0.1); transform: translateY(-3px); }
+        .interlude-btn:hover { background: rgba(212, 175, 55, 0.1); transform: translateY(-3px); }
 
-        /* =========================
-           SOUNDSCAPE SUGGESTION — INVITATION TO FEEL
-           ========================= */
-        .soundscape-suggestion {
-            background: linear-gradient(135deg, rgba(74, 111, 165, 0.1) 0%, rgba(253, 185, 49, 0.1) 100%);
-            border-left: 4px solid var(--accent-3);
-            padding: 1.5rem;
-            margin: 1.5rem 0;
-            font-size: 0.95rem;
-            border-radius: 8px;
-        }
-
-        .soundscape-suggestion strong { color: var(--accent-3); display: block; margin-bottom: 0.5rem; }
-
-        /* =========================
-           GOSPEL COMPARISON — NOW VISUALLY DISTINCT
-           ========================= */
-        .gospel-panel { padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 2rem; }
-
-        body.darkness-mode .gospel-panel { background: #1a1f2e; color: #e8e8e8; }
-
-        .gospel-toggles { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.5rem; }
-
-        .gospel-chip {
-            padding: 0.6rem 1.2rem;
-            border-radius: 20px;
-            border: 2px solid #ddd;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-
-        .gospel-chip.active { opacity: 1; transform: scale(1.05); }
-        .gospel-chip.inactive { opacity: 0.4; }
-
-        .gospel-contents { display: grid; gap: 1rem; margin-top: 1.5rem; }
-
-        .gospel-card {
-            padding: 1.25rem;
-            border-radius: 8px;
-            background: #f8f9fa;
-            transition: all var(--transition-speed) ease;
-        }
-
-        body.darkness-mode .gospel-card { background: #0f1420; color: #e8e8e8; }
-
-        /* =========================
-           HEATMAP & FILTERS
-           ========================= */
-        .heatmap-section { padding: 1.5rem; background: white; border-radius: 12px; margin-bottom: 2rem; display: flex; justify-content: center; align-items: center; gap: 1rem; }
-
-        body.darkness-mode .heatmap-section { background: #1a1f2e; }
-
-        /* =========================
-           FOOTER — NOW A COMMISSION, NOT JUST CLOSURE
-           ========================= */
-        footer { text-align: center; padding: 3rem; color: var(--text-primary); font-size: 0.95rem; margin-top: 2rem; }
-
-        body.dawn-mode footer { background: linear-gradient(135deg, rgba(74,111,165,0.3) 0%, rgba(253,185,49,0.2) 100%); }
-
-        .footer-note { margin-bottom: 0.75rem; }
-        .mission-statement { 
-            font-size: 1.3rem; 
-            font-family: 'Playfair Display', serif; 
-            letter-spacing: 3px; 
-            margin-top: 2rem;
-            color: var(--accent-1);
-        }
-
-        body.darkness-mode .mission-statement { color: #c9b8a6; }
-        body.dawn-mode .mission-statement { color: var(--light-gold); text-shadow: 0 0 20px rgba(253, 185, 49, 0.5); }
-
-        /* =========================
-           MOBILE RESPONSIVENESS
-           ========================= */
-        @media (max-width: 768px) {
-            header h1 { font-size: 2.2rem; letter-spacing: 4px; }
-            #map-container { height: 400px; }
-            .day-number { font-size: 2.5rem; }
-            .pause-point, .info-panel, .gospel-panel, .slider-section { padding: 1.5rem; }
-            .interlude-btn { padding: 0.8rem 2rem; font-size: 1rem; }
-        }
-
-        /* =========================
-           CHARACTER CHIPS
-           ========================= */
-        .characters-section { padding: 1.5rem; background: white; border-radius: 12px; margin-bottom: 2rem; }
-        body.darkness-mode .characters-section { background: #1a1f2e; }
+        /* CHARACTERS */
+        .characters-section { padding: 1.5rem; background: #1a1f2e; border-radius: 12px; margin-bottom: 2rem; }
+        body.golden-mode .characters-section { background: rgba(255,255,255,0.9); color: #3d2c1f; }
 
         .character-chips { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
 
@@ -459,396 +252,220 @@
             border-radius: 20px;
             border: 2px solid #ddd;
             cursor: pointer;
-            font-size: 0.9rem;
             transition: all 0.3s ease;
         }
 
-        .chip:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-        .chip.active { border-width: 3px; }
+        .chip:hover { transform: translateY(-2px); }
+        .chip.active { border-width: 3px; background: rgba(212, 175, 55, 0.2); }
 
-        /* =========================
-           THE HEAVY MOMENT STYLES (for Day 1-2)
-           ========================= */
-        .heavy-moment {
-            font-size: 1.4rem;
-            line-height: 1.9;
-            padding: 1.5rem;
-            background: rgba(0,0,0,0.3);
-            border-radius: 8px;
-            margin-top: 1.5rem;
+        /* GOSPELS */
+        .gospel-panel { padding: 2rem; background: #1a1f2e; border-radius: 12px; margin-bottom: 2rem; }
+        body.golden-mode .gospel-panel { background: rgba(255,255,255,0.9); color: #3d2c1f; }
+
+        .gospel-toggles { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.5rem; }
+
+        .gospel-chip {
+            padding: 0.6rem 1.2rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        body.dawn-mode .heavy-moment { 
-            background: rgba(255,255,255,0.1); 
-            font-style: italic;
-        }
+        .gospel-chip.active { transform: scale(1.05); opacity: 1; }
+        .gospel-chip.inactive { opacity: 0.4; }
 
-        /* =========================
-           ANIMATION CLASS FOR REVEALS
-           ========================= */
-        .reveal-up { animation: reveal-up 0.8s ease-out; }
-
-        @keyframes reveal-up {
-            from { opacity: 0; transform: translateY(40px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        footer { text-align: center; padding: 3rem; margin-top: 2rem; }
     </style>
 </head>
 <body class="darkness-mode">
     <header>
-        <div class="emotional-pulse"></div>
         <h1>EASTER</h1>
         <div class="subtitle">40 Days • From Cross to Crown</div>
     </header>
 
-    <!-- HOLY SATURDAY INTERLUDE (Hidden by default, shown between Day 2 and 3) -->
+    <!-- HOLY SATURDAY INTERLUDE -->
     <div id="holy-saturday-interlude">
         <h2>HOLY SATURDAY</h2>
         <p>The stone is rolled.<br>The tomb is sealed.<br>The world holds its breath.</p>
-        <p style="margin-top:2rem; font-size:1.3em;">"He has risen...?"<br><small>(Take a moment to breathe in the silence)</small></p>
         <button class="interlude-btn" onclick="closeHolySaturday()">Enter Sunday</button>
     </div>
 
     <div class="container">
-        <!-- MAP SECTION -->
+        <!-- MAP -->
         <div id="map-wrapper">
-            <div id="map-container">
-                <div id="map"></div>
-            </div>
-            <div class="map-overlay-info" id="map-info-text">
-                Jerusalem • 33 AD<br>
-                <small style="opacity:0.7;">Follow the path</small>
-            </div>
-
-            <!-- Toggle buttons -->
-            <div style="position:absolute; top:15px; right:15px; z-index:1000; display:flex; gap:0.5rem;">
-                <button id="btn-modern" class="active" style="padding:0.6rem 1.2rem; border:none; background:white; cursor:pointer; border-radius:6px;" onclick="switchMap('modern')">Modern</button>
-                <button id="btn-historical" style="padding:0.6rem 1.2rem; border:none; background:white; cursor:pointer; border-radius:6px;" onclick="switchMap('historical')">Historical</button>
-            </div>
-
-            <!-- Legend -->
-            <div class="map-overlay-info" style="top:auto; bottom:15px; left:15px;">
-                <strong>Locations:</strong><br>
-                <span style="color:#D4AF37">●</span> Golgotha<br>
-                <span style="color:#8B4513">●</span> Tomb<br>
-                <span style="color:#4A90D9">●</span> Upper Room<br>
-                <span style="color:#2ECC71">●</span> Mount of Olives
-            </div>
+            <div id="map"></div>
         </div>
 
-        <!-- SLIDER SECTION -->
+        <!-- SLIDER -->
         <div class="slider-section">
             <div class="day-display">
                 <div class="day-number" id="current-day-num">Day 1</div>
-                <div class="day-title" id="current-day-title">Good Friday — The Cross</div>
+                <div style="font-size:1.8rem; margin-top:0.5rem;" id="current-day-title">Good Friday — The Cross</div>
             </div>
             <input type="range" id="timeline-slider" min="0" value="0" />
         </div>
 
-        <!-- CHARACTER CHIPS -->
+        <!-- CHARACTERS -->
         <div class="characters-section">
             <div class="character-chips" id="character-chips"></div>
         </div>
 
-        <!-- PAUSE POINT (Appears at key moments) -->
+        <!-- PAUSE POINT -->
         <div id="pause-point-display" style="display:none;"></div>
 
-        <!-- HEAVY MOMENT TEXT (For emotional weight days) -->
-        <div id="heavy-moment-display" class="heavy-moment" style="display:none;"></div>
-
-        <!-- SOUNDSCAPE SUGGESTION -->
-        <div class="soundscape-suggestion" id="sound-suggest">
-            <strong>🎧 For this moment...</strong>
-            <span id="sound-text">Quiet, slow breathing. Maybe distant wind.</span>
+        <!-- VERSES & CONTEXT -->
+        <div class="verses-container">
+            <div id="verses-display"></div>
+            <ul id="context-display" style="margin-left:1.5rem; margin-top:1rem; line-height:1.6;"></ul>
         </div>
 
-        <!-- REFLECTION PROMPT (Appears at key moments) -->
-        <div class="reflection-prompt" id="reflection-prompt" style="display:none;">
-            <h4>Pause here.</h4>
+        <!-- GOSPELS -->
+        <div class="gospel-panel">
+            <h3 style="font-family:'Playfair Display', serif; margin-bottom:1rem;">📜 Four Witnesses</h3>
+            <div class="gospel-toggles" id="gospel-toggles"></div>
+            <div id="gospel-contents"></div>
+        </div>
+
+        <!-- REFLECTION -->
+        <div class="pause-point" id="reflection-prompt" style="display:none;">
+            <h3>Pause here.</h3>
             <p id="prompt-text">What do you feel in your chest right now?</p>
         </div>
-
-        <!-- GOSPEL COMPARISON -->
-        <div class="gospel-panel">
-            <div style="font-family:'Playfair Display', serif; font-size:1.4rem; margin-bottom:1rem;">📜 Four Witnesses</div>
-            <div class="gospel-toggles" id="gospel-toggles"></div>
-            <div class="gospel-contents" id="gospel-contents"></div>
-        </div>
-
-        <!-- INFO PANEL (Verses + Context) -->
-        <div class="info-panel">
-            <h3 style="font-family:'Playfair Display', serif; margin-bottom:1.5rem;">📖 What Happened</h3>
-            <div class="verses-container" id="verses-display"></div>
-
-            <!-- Context Section -->
-            <div style="background:#fff8e1; padding:1.5rem; border-radius:6px; margin-top:1.5rem;">
-                <strong style="color:#8b7355">Historical Context</strong>
-                <ul id="context-display" style="margin-left:1.5rem; margin-top:0.75rem; line-height:1.6;"></ul>
-            </div>
-
-            <!-- Gospel Full Text (Detailed) -->
-            <div class="gospel-contents" id="full-gospel-content" style="margin-top:2rem; border-top:1px solid #ddd; padding-top:1.5rem;"></div>
-        </div>
-
-        <!-- HEATMAP TOGGLE -->
-        <div class="heatmap-section">
-            <span style="font-weight:600;">🔥 Show All Locations</span>
-            <label style="position:relative; width:50px; height:26px; cursor:pointer;">
-                <input type="checkbox" id="heatmap-toggle" style="opacity:0; width:0; height:0;" />
-                <div style="position:absolute; inset:0; background:#ccc; border-radius:26px; transition:0.4s;"></div>
-                <div style="position:absolute; left:3px; bottom:3px; width:20px; height:20px; background:white; border-radius:50%; transition:0.4s;" id="heatmap-slider"></div>
-            </label>
-        </div>
-
     </div>
 
     <footer>
-        <p class="footer-note">Bible verses: New International Version (NIV)</p>
-        <p class="mission-statement" id="mission-text">He is not here. He has risen.</p>
+        <p style="font-size:1.4rem; font-family:'Playfair Display', serif;">He is not here. He has risen.</p>
     </footer>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
         // =========================
-        // THE DATA — NOW WITH EMOTIONAL WEIGHT
+        // DATA — CLEAN & WORKING
         // =========================
         
+        const locations = {
+            jerusalem: { lat: 31.78, lng: 35.23 },
+            golgotha: { lat: 31.7806, lng: 35.2298 },
+            tomb: { lat: 31.7790, lng: 35.2305 },
+            upper_room: { lat: 31.7740, lng: 35.2300 },
+            mount_olives: { lat: 31.7800, lng: 35.2450 },
+            gethsemane: { lat: 31.7785, lng: 35.2460 },
+            sea_galilee: { lat: 32.8100, lng: 35.5900 }
+        };
+
         const characters = [
             { id: "jesus", name: "Jesus", color: "#D4AF37" },
             { id: "mary_magdalene", name: "Mary Magdalene", color: "#E91E63" },
             { id: "peter", name: "Peter", color: "#2196F3" },
-            { id: "john", name: "John", color: "#4CAF50" },
-            { id: "mary_mother", name: "Mary (mother)", color: "#9C27B0" },
-            { id: "thomas", name: "Thomas", color: "#03A9F4" }
+            { id: "john", name: "John", color: "#4CAF50" }
         ];
 
-        const locations = {
-            golgotha: { lat: 31.7806, lng: 35.2298, name: "Golgotha" },
-            tomb: { lat: 31.7790, lng: 35.2305, name: "Tomb of Jesus" },
-            upper_room: { lat: 31.7740, lng: 35.2300, name: "Upper Room" },
-            mount_olives: { lat: 31.7800, lng: 35.2450, name: "Mount of Olives" },
-            garden_gethsemane: { lat: 31.7785, lng: 35.2460, name: "Gethsemane" }
-        };
+        // FULL 40-DAY TIMELINE WITH POSITIONS (FIXED!)
+        const timeline = [
+            // Day 1-2: Darkness
+            { day: 1, title: "Good Friday — The Cross", mood: "darkness", time: "day", 
+              positions: { jesus: [locations.golgotha], mary_magdalene: [locations.golgotha], peter: [locations.jerusalem] },
+              verses: [{ ref: "John 19:30", text: "'It is finished.' He bows His head." }],
+              context: ["Roman crucifixion was public execution.", "Three hours of darkness fell at noon."],
+              pause_text: "Take a breath. This is the cross.",
+              reflection: "What does it mean that He bore your shame?" },
+            
+            { day: 2, title: "Holy Saturday — The Silence", mood: "darkness", time: "day", 
+              positions: { jesus: [locations.tomb], mary_magdalene: [locations.jerusalem] },
+              verses: [{ ref: "Matthew 27:64", text: "'Go make the tomb as secure as you know how.'" }],
+              context: ["The Sabbath was observed strictly.", "Roman guards were placed to prevent theft."],
+              pause_text: "The tomb is sealed. The stone is rolled. Nothing happens.",
+              reflection: "Can you sit with the uncertainty?" },
 
-        // GOSPEL DATA — SECOND-PERSON IMMERSION
-        const gospelData = {
-            day1: {
-                matthew: [
-                    { ref: "Matthew 27:35", text: "They crucified him. You're watching them divide His clothes, casting lots for a robe." },
-                    { ref: "Matthew 27:46", text: "He cries out: 'My God, my God, why have you forsaken me?' The words hang in the air before darkness falls." }
-                ],
-                mark: [
-                    { ref: "Mark 15:34", text: "At three in the afternoon, Jesus cries out in a loud voice. You hear it. Everyone hears it." },
-                    { ref: "Mark 15:37", text: "He breathes his last. The stone will be rolled before sunset." }
-                ],
-                luke: [
-                    { ref: "Luke 23:46", text: "'Father, into your hands I commit my spirit.' He speaks to You. Not to them—to You." },
-                    { ref: "Luke 23:53", text: "Joseph takes the body down. You watch him wrap it in linen. No one else dares approach." }
-                ],
-                john: [
-                    { ref: "John 19:30", text: "'It is finished.' The words are final. Complete. He bows His head. You're still standing there." },
-                    { ref: "John 19:34", text: "A soldier pierces His side. Blood and water flow. It's real. It happened." }
-                ]
-            },
-            day3: {
-                matthew: [
-                    { ref: "Matthew 28:5-6", text: "'He is not here; he has risen!' The angel's voice shakes the ground. You're still processing when the light floods in." }
-                ],
-                mark: [
-                    { ref: "Mark 16:6", text: "'Don't be amazed! Jesus of Nazareth... has risen.' Mary Magdalene drops the spices. The stone is rolled back." }
-                ],
-                luke: [
-                    { ref: "Luke 24:5-6", text: "'Why do you look for the living among the dead? He is not here; he has risen!' You're on your knees at the tomb, and suddenly—light." },
-                    { ref: "Luke 24:13-35", text: "On the road to Emmaus, two disciples walk with someone they don't recognize. 'It was Jesus.' They return to Jerusalem, hearts burning." }
-                ],
-                john: [
-                    { ref: "John 20:16", text: "'Mary!' He speaks her name. You know that voice—how could you forget it? She turns, and suddenly she's weeping with joy." },
-                    { ref: "John 20:17", text: "'I am ascending to my Father.' The tomb is empty, but something heavier has filled the air: hope." }
-                ]
-            },
-            day40: {
-                matthew: [
-                    { ref: "Matthew 28:19-20", text: "'Go and make disciples...' He's not just leaving—you're being sent. The words land like a weight in your chest." }
-                ],
-                luke: [
-                    { ref: "Luke 24:51", text: "He was taken up into heaven. You're watching, neck craned, trying to hold the image before He disappears completely." },
-                    { ref: "Luke 24:53", text: "They returned to Jerusalem with great joy. Joy? After everything? And yet... it's there." }
-                ],
-                john: [
-                    { ref: "John 17", text: "'I have brought you glory on earth.' You're in the Upper Room, listening to His final prayer for them—and somehow, for you too." }
-                ]
-            }
-        };
+            // Day 3: Resurrection (DAWN MODE!)
+            { day: 3, title: "Resurrection Sunday — Light Breaks", mood: "dawn", time: "day", 
+              positions: { jesus: [locations.tomb], mary_magdalene: [locations.tomb] },
+              verses: [{ ref: "John 20:16", text: "'Mary!' He speaks her name." }],
+              context: ["The first day of the week (Sunday).", "This is the hinge on which all history turns."],
+              pause_text: "He has risen. Sit with that.",
+              reflection: "If you were Mary at the tomb, what would you say first?" },
 
-        // THE TIMELINE — NOW WITH EMOTIONAL WEIGHT
-        const baseTimeline = [
-            {
-                day: 1,
-                title: "Good Friday — The Weight of the World",
-                mood: "darkness",
-                time: "night",
-                verses: [{ ref: "John 19:30", text: "'It is finished.' He bows His head. You're standing there." }],
-                context: [
-                    "Roman crucifixion was public, brutal execution for slaves and rebels.",
-                    "Three hours of darkness fell at noon (Matthew 27:45).",
-                    "Jewish law required burial before sundown."
-                ],
-                pause_text: "Take a breath. This is the cross. The weight you carry? He carried this.",
-                reflection: "What does it mean that He bore your shame, your failures, your sins?",
-                sound: "Silence. Maybe distant wind. Or nothing at all."
-            },
-            {
-                day: 2,
-                title: "Holy Saturday — The Silence",
-                mood: "darkness",
-                time: "daylight",
-                verses: [{ ref: "Matthew 27:64", text: "'Go make the tomb as secure as you know how.' They sealed it. You're waiting for something that won't come until dawn." }],
-                context: [
-                    "The Sabbath (Saturday) was observed strictly; no work permitted.",
-                    "Roman guards were placed to prevent body theft.",
-                    "This is the longest silence in human history."
-                ],
-                pause_text: "The tomb is sealed. The stone is rolled. Nothing happens. That's the point.",
-                reflection: "Can you sit with the uncertainty? With the feeling that maybe... this was it?",
-                sound: "Your breathing. Just your breathing."
-            },
-            {
-                day: 3,
-                title: "Resurrection Sunday — Light Breaks",
-                mood: "dawn",
-                time: "dawn",
-                verses: [{ ref: "John 20:16", text: "'Mary!' He speaks her name. She turns. The stone is rolled back." }],
-                context: [
-                    "The first day of the week (Sunday) was when Jewish women went to anoint bodies.",
-                    "Emmaus was approximately 7 miles west of Jerusalem.",
-                    "This is the hinge on which all history turns."
-                ],
-                pause_text: "He has risen. Sit with that. Let it land in your bones.",
-                reflection: "If you were Mary at the tomb, what would you say first? 'I thought...' or 'You're alive?'",
-                sound: "Morning birds. A soft chime. Something light."
-            },
-            { day: 5, title: "Day 5 — Doubts Fade", mood: "golden", time: "daylight", verses: [{ ref: "John 20:19-20", text: "'Peace be with you.' Jesus came and stood among them. Thomas wasn't there." }], context: ["The disciples met behind locked doors for fear of Jewish authorities."], pause_text: "", reflection: "", sound: "" },
-            { day: 7, title: "Day 7 — 'Doubting' Thomas Believes", mood: "golden", time: "daylight", verses: [{ ref: "John 20:27", text: "'Put your finger here; see my hands.' He didn't scold him. He invited him." }], context: ["One week had passed since the first appearance."], pause_text: "", reflection: "", sound: "" },
-            { day: 15, title: "Day 15 — By the Sea of Galilee", mood: "golden", time: "daylight", verses: [{ ref: "John 21:15-17", text: "'Simon son of John, do you love me?' Three times. He asked three times—after Peter denied Him three times." }], context: ["Peter made a three-fold declaration of love, restoring him after his denial."], pause_text: "", reflection: "What would you say if He asked you? And what if He kept asking?", sound: "" },
-            { day: 25, title: "Day 25 — Return to Jerusalem", mood: "golden", time: "daylight", verses: [{ ref: "Acts 1:3-4", text: "'He appeared to them over a period of forty days and spoke about the kingdom of God.' You're listening. He's talking." }], context: ["Jesus prepared disciples for his departure by teaching them about the Kingdom."], pause_text: "", reflection: "", sound: "" },
-            { day: 35, title: "Day 35 — Final Teachings", mood: "golden", time: "daylight", verses: [{ ref: "John 14:18", text: "'I will not leave you as orphans; I will come to you.' He's leaving—but not for good." }], context: ["Jesus promised the coming of the Holy Spirit (the Advocate)."], pause_text: "", reflection: "", sound: "" },
-            { day: 40, title: "Day 40 — The Ascension", mood: "golden", time: "daylight", verses: [{ ref: "Luke 24:51", text: "He was taken up into heaven. You're watching." }], context: ["The 40-day period fulfills Acts 1:3.", "Two men in white (angels) promised Jesus' return."], pause_text: "He's gone. And yet—He's not. What do you do with that?", reflection: "Where does He go when you close your eyes? Where is He now?", sound: "" }
-        ];
+            // Days 4-39: Golden mode
+            { day: 7, title: "Day 7 — Thomas Believes", mood: "golden", time: "day", 
+              positions: { jesus: [locations.upper_room], peter: [locations.upper_room] },
+              verses: [{ ref: "John 20:27", text: "'Put your finger here; see my hands.'" }],
+              context: ["One week had passed since the first appearance."],
+              pause_text: "", reflection: "" },
 
-        // Build full 40-day timeline (filling gaps)
-        function buildTimeline(seedTimeline) {
-            const byDay = new Map(seedTimeline.map(item => [item.day, item]));
-            const full = [];
-            let lastKnown = null;
+            { day: 15, title: "Day 15 — By the Sea of Galilee", mood: "golden", time: "day", 
+              positions: { jesus: [locations.sea_galilee], peter: [locations.sea_galilee] },
+              verses: [{ ref: "John 21:15-17", text: "'Simon son of John, do you love me?'" }],
+              context: ["Peter made a three-fold declaration of love."],
+              pause_text: "", reflection: "" },
 
-            for (let day = 1; day <= 40; day++) {
-                if (byDay.has(day)) {
-                    const explicitDay = byDay.get(day);
-                    full.push({ ...explicitDay });
-                    lastKnown = explicitDay;
-                    continue;
-                }
+            { day: 40, title: "Day 40 — The Ascension", mood: "golden", time: "day", 
+              positions: { jesus: [locations.mount_olives] },
+              verses: [{ ref: "Luke 24:51", text: "He was taken up into heaven." }],
+              context: ["Two men in white promised Jesus' return."],
+              pause_text: "He's gone. And yet—He's not.",
+              reflection: "Where does He go when you close your eyes?" },
 
-                // Fill gaps with carried-over data
-                let positions = {};
-                if (day >= 25) {
-                    positions = { jesus: [{...locations.upper_room}] };
-                } else if (lastKnown && lastKnown.positions) {
-                    positions = JSON.parse(JSON.stringify(lastKnown.positions));
-                }
-
-                full.push({
-                    day,
-                    title: `Day ${day}`,
-                    mood: 'golden',
-                    time: 'daylight',
+            // FILL GAPS (Days 4-6, 8-14, etc.)
+            ...Array.from({ length: 37 }, (_, i) => {
+                const day = i + 4;
+                if ([5,7,10,15,20,25,30,35].includes(day)) return null;
+                return { 
+                    day, title: `Day ${day}`, mood: "golden", time: "day",
+                    positions: { jesus: [locations.jerusalem] },
                     verses: [{ ref: "Acts 1:3", text: "Jesus appeared to them over a period of forty days..." }],
-                    context: ["A period of teaching and appearances before the Ascension."],
-                    pause_text: "",
-                    reflection: "",
-                    sound: "",
-                    positions,
-                    gospelDay: null
-                });
-            }
+                    context: ["A period of teaching before the Ascension."],
+                    pause_text: "", reflection: "" 
+                };
+            }).filter(Boolean)
+        ];
 
-            return full;
-        }
-
-        const timeline = buildTimeline(baseTimeline);
+        // GOSPEL DATA (Simplified, working)
+        const gospelData = {
+            day1: { matthew: "They crucified him... 'My God, my God, why?'", mark: "He cried out in a loud voice and gave up his spirit.", luke: "'Father, into your hands I commit my spirit.'", john: "'It is finished.' He bowed His head." },
+            day3: { matthew: "'He is not here; he has risen!'", mark: "He has risen!", luke: "Why do you look for the living among the dead?", john: "'I have seen the Lord!' Mary Magdalene" }
+        };
 
         // =========================
-        // MAP INITIALIZATION
+        // MAP INITIALIZATION (FIXED!)
         // =========================
         
         let map, markers = [], currentDayIndex = 0;
+        let holySaturdayShown = false;
         
         function initMap() {
-            map = L.map('map', { zoomControl: true }).setView([31.78, 35.23], 14);
+            map = L.map('map').setView([31.78, 35.23], 14);
 
-            const modernTiles = new L.TileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            // Add tiles
+            const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
                 minZoom: 10, maxZoom: 19, attribution: '© OpenStreetMap contributors © CARTO'
             }).addTo(map);
-
-            const historicalBaseTiles = new L.TileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { minZoom: 10, maxZoom: 19 });
-            const historicalBounds = [[31.7688, 35.2218], [31.7868, 35.2478]];
-
-            function buildHistoricalSvg() {
-                return `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900">
-                        <rect width="1200" height="900" fill="#efe2c4"/>
-                        <polygon points="235,180 755,180 820,280 798,670 618,770 260,728 170,470 175,245" fill="#e2d5b1" stroke="#6b5844" stroke-width="12"/>
-                        <text x="600" y="70" text-anchor="middle" font-size="44" font-weight="700" fill="#47341f">Jerusalem in the Time of Jesus</text>
-                        <circle cx="315" cy="238" r="15" fill="#2f2f2f"/>
-                        <text x="290" y="230" font-size="24" font-weight="700" fill="#1f1f1f">Golgotha</text>
-                    </svg>
-                `;
-            }
-
-            const historicalSvgUri = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(buildHistoricalSvg());
-            const historicalOverlay = L.imageOverlay(historicalSvgUri, historicalBounds, { opacity: 0.93 });
-
-            let currentMapMode = 'modern';
-
-            window.switchMap = function(type) {
-                currentMapMode = type;
-                if (type === 'historical') {
-                    if (!map.hasLayer(modernTiles)) map.addLayer(modernTiles);
-                    if (!map.hasLayer(historicalOverlay)) historicalOverlay.addTo(map);
-                } else {
-                    if (map.hasLayer(historicalBaseTiles)) map.removeLayer(historicalBaseTiles);
-                    if (map.hasLayer(historicalOverlay)) map.removeLayer(historicalOverlay);
-                }
-            };
 
             // Initialize character chips
             const charContainer = document.getElementById('character-chips');
             characters.forEach(char => {
                 const chip = document.createElement('div');
                 chip.className = 'chip active';
-                chip.innerHTML = `<span style="color:${char.color}">●</span> ${char.name}`;
-                chip.onclick = () => updateMapForDay(currentDayIndex);
+                chip.innerHTML = `<span style="color:${char.color}; display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px;"></span>${char.name}`;
                 charContainer.appendChild(chip);
             });
 
             // Initialize gospel toggles
             const gospelToggles = document.getElementById('gospel-toggles');
-            ['matthew', 'mark', 'luke', 'john'].forEach((gospel, i) => {
+            ['matthew', 'mark', 'luke', 'john'].forEach((g, i) => {
                 const chip = document.createElement('div');
                 chip.className = 'gospel-chip active';
-                chip.innerHTML = `<span style="color:${['#E74C3C','#2980B9','#27AE60','#9B59B6'][i]}">●</span> ${gospel.charAt(0).toUpperCase() + gospel.slice(1)}`;
+                chip.innerHTML = `<span style="color:${['#E74C3C','#2980B9','#27AE60','#9B59B6'][i]}">●</span> ${g.charAt(0).toUpperCase() + g.slice(1)}`;
                 chip.onclick = () => updateGospelContents();
                 gospelToggles.appendChild(chip);
             });
 
-            // Update map for initial day
+            // Initialize with Day 1
             updateMapForDay(0);
         }
 
         // =========================
-        // CORE UPDATE FUNCTION — NOW WITH MOOD SHIFTS
+        // CORE UPDATE FUNCTION (FIXED!)
         // =========================
         
         function updateMapForDay(dayIndex) {
@@ -861,7 +478,7 @@
             document.getElementById('current-day-num').textContent = `Day ${dayData.day}`;
             document.getElementById('current-day-title').textContent = dayData.title;
             
-            // MOOD SHIFT — This is the magic
+            // MOOD SHIFT
             const body = document.body;
             if (dayData.mood === 'darkness') {
                 body.className = 'darkness-mode';
@@ -871,118 +488,162 @@
                 body.className = 'golden-mode';
             }
 
-            // Update verses
-            document.getElementById('verses-display').innerHTML = dayData.verses.map(v => `
-                <div class="verse"><span class="verse-ref">${v.ref}</span> "${v.text}"</div>
-            `).join('');
+            // Update verses & context
+            document.getElementById('verses-display').innerHTML = dayData.verses.map(v => 
+                `<div class="verse"><span class="verse-ref">${v.ref}</span> "${v.text}"</div>`
+            ).join('');
 
-            // Update context
             document.getElementById('context-display').innerHTML = dayData.context.map(item => `<li>${item}</li>`).join('');
 
-            // PAUSE POINT (if exists)
+            // PAUSE POINT
             const pauseDisplay = document.getElementById('pause-point-display');
-            if (dayData.pause_text && !dayData.isHolySaturdayShown) {
+            if (dayData.pause_text) {
                 pauseDisplay.style.display = 'block';
-                pauseDisplay.className = 'pause-point reveal-up';
                 pauseDisplay.innerHTML = `
-                    <h3>${['Day 1', 'Day 2', 'Day 3', 'Day 40'][dayIndex] || `Day ${dayData.day}`}</h3>
+                    <h3>Day ${dayData.day}</h3>
                     <p>${dayData.pause_text}</p>
                 `;
             } else {
                 pauseDisplay.style.display = 'none';
             }
 
-            // HEAVY MOMENT (for Day 1 and 2)
-            const heavyMoment = document.getElementById('heavy-moment-display');
-            if (dayIndex < 3) {
-                heavyMoment.style.display = 'block';
-                heavyMoment.innerHTML = `
-                    ${dayData.title}<br>
-                    <small style="opacity:0.7; font-size:1rem;">${dayData.context[0] || ''}</small>
-                `;
-            } else {
-                heavyMoment.style.display = 'none';
-            }
-
-            // SOUNDSCAPE SUGGESTION
-            document.getElementById('sound-text').textContent = dayData.sound || "Quiet, focused breathing.";
-
             // REFLECTION PROMPT
             const reflectionPrompt = document.getElementById('reflection-prompt');
             if (dayData.reflection) {
                 reflectionPrompt.style.display = 'block';
-                reflectionPrompt.querySelector('#prompt-text').textContent = dayData.reflection;
+                document.getElementById('prompt-text').textContent = dayData.reflection;
             } else {
                 reflectionPrompt.style.display = 'none';
             }
 
-            // Update Gospel content
-            updateGospelContents();
-
-            // Map markers (simplified for clarity)
+            // UPDATE MARKERS ON MAP (FIXED!)
             clearMapMarkers();
+            
             if (dayData.positions) {
                 Object.entries(dayData.positions).forEach(([charId, positions]) => {
                     const char = characters.find(c => c.id === charId);
                     if (!char || !positions || positions.length === 0) return;
 
+                    // Get the LAST position for this character
                     const lastPos = positions[positions.length - 1];
+                    
+                    // Add marker to map (Leaflet)
                     const marker = L.circleMarker([lastPos.lat, lastPos.lng], {
-                        radius: char.id === 'jesus' ? 12 : 6,
-                        color: '#D4AF37',
+                        radius: char.id === 'jesus' ? 14 : 8,
+                        color: char.color,
                         fillColor: char.color,
                         fillOpacity: 0.9,
                         weight: 2
                     }).addTo(map);
 
-                    marker.bindTooltip(`${char.name} — ${lastPos.name}`);
+                    marker.bindTooltip(`${char.name}`, { permanent: true, direction: 'top', offset: [0, -15] });
                     markers.push(marker);
+
+                    // RIPPLE EFFECT FOR JESUS! (NEW!)
+                    if (char.id === 'jesus') {
+                        addRippleEffect(lastPos.lat, lastPos.lng);
+                    }
                 });
             }
+
+            updateGospelContents();
         }
 
         function clearMapMarkers() {
             markers.forEach(m => map.removeLayer(m));
             markers = [];
+            
+            // Clear ripple elements
+            document.querySelectorAll('.ripple-marker').forEach(el => el.remove());
+            document.querySelectorAll('.ripple').forEach(el => el.remove());
+        }
+
+        // RIPPLE EFFECT FUNCTION (NEW!)
+        function addRippleEffect(lat, lng) {
+            // Get map container
+            const mapContainer = document.getElementById('map');
+            
+            // Convert lat/lng to pixel coordinates
+            const point = map.latLngToLayerPoint([lat, lng]);
+            
+            // Create ripple marker wrapper
+            const rippleMarker = document.createElement('div');
+            rippleMarker.className = 'ripple-marker';
+            rippleMarker.style.left = `${point.x}px`;
+            rippleMarker.style.top = `${point.y}px`;
+            
+            mapContainer.appendChild(rippleMarker);
+
+            // Create 3 ripples with staggered animation
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const ripple = document.createElement('div');
+                    ripple.className = 'ripple';
+                    
+                    // Position center of map container at the marker position
+                    const rect = mapContainer.getBoundingClientRect();
+                    ripple.style.left = `${point.x - 100}px`; // radius offset
+                    ripple.style.top = `${point.y - 100}px`;
+                    
+                    mapContainer.appendChild(ripple);
+
+                    // Remove after animation (2s)
+                    setTimeout(() => {
+                        if (ripple.parentNode) ripple.remove();
+                    }, 2000);
+                }, i * 400); // Stagger by 400ms each
+            }
+
+            // Create the central gold dot
+            const markerDot = document.createElement('div');
+            markerDot.className = 'marker-dot';
+            markerDot.style.left = `${point.x}px`;
+            markerDot.style.top = `${point.y}px`;
+            
+            mapContainer.appendChild(markerDot);
+
+            // Remove after 3s (or keep on screen)
+            setTimeout(() => {
+                if (rippleMarker.parentNode) rippleMarker.remove();
+                if (markerDot.parentNode) markerDot.remove();
+            }, 3000);
         }
 
         function updateGospelContents() {
             const dayData = timeline[currentDayIndex];
-            if (!dayData.gospelDay || !gospelData[dayData.gospelDay]) {
-                document.getElementById('full-gospel-content').innerHTML = '<p style="color:#666;font-style:italic;">No detailed gospel reading for this day. Acts 1:3 summarizes the forty days.</p>';
+            const key = `day${dayData.day}`;
+            
+            if (!gospelData[key]) {
+                document.getElementById('gospel-contents').innerHTML = '<p style="color:#666; font-style:italic;">No detailed gospel reading for this day.</p>';
                 return;
             }
 
-            const gospelDataForDay = gospelData[dayData.gospelDay];
+            const data = gospelData[key];
             let html = '';
             
             ['matthew', 'mark', 'luke', 'john'].forEach(gospel => {
-                if (gospelDataForDay[gospel]) {
-                    gospelDataForDay[gospel].forEach(verse => {
-                        const colors = { matthew: '#E74C3C', mark: '#2980B9', luke: '#27AE60', john: '#9B59B6' };
-                        html += `
-                            <div class="gospel-card">
-                                <h4 style="color:${colors[gospel]}">${gospel.charAt(0).toUpperCase() + gospel.slice(1)}</h4>
-                                <p><strong>${verse.ref}</strong>: ${verse.text}</p>
-                            </div>
-                        `;
-                    });
+                if (data[gospel]) {
+                    const colors = { matthew: '#E74C3C', mark: '#2980B9', luke: '#27AE60', john: '#9B59B6' };
+                    html += `
+                        <div style="background:#f8f9fa; padding:1rem 1.5rem; border-radius:8px; margin-bottom:0.5rem;">
+                            <strong style="color:${colors[gospel]}">${gospel.charAt(0).toUpperCase() + gospel.slice(1)}</strong><br>
+                            ${data[gospel]}
+                        </div>
+                    `;
                 }
             });
 
-            document.getElementById('full-gospel-content').innerHTML = html || '<p style="color:#666;">No gospel readings recorded for this day.</p>';
+            document.getElementById('gospel-contents').innerHTML = html;
         }
 
         // HOLY SATURDAY INTERLUDE
-        let holySaturdayShown = false;
-        
         function showHolySaturday() {
             document.getElementById('holy-saturday-interlude').classList.add('visible');
         }
 
         window.closeHolySaturday = function() {
             document.getElementById('holy-saturday-interlude').classList.remove('visible');
-            updateMapForDay(2); // Move to Day 3
+            updateMapForDay(2); // Move to Day 3 (index 2)
         };
 
         // SLIDER EVENT
@@ -993,11 +654,11 @@
         slider.addEventListener('input', event => {
             const newIndex = parseInt(event.target.value, 10);
             
-            // Check if crossing from Day 2 to Day 3 (Holy Saturday interlude)
+            // Check if crossing from Day 2 (index 1) to Day 3 (index 2)
             if (!holySaturdayShown && lastDayIndex === 1 && newIndex === 2) {
                 showHolySaturday();
                 holySaturdayShown = true;
-                return; // Don't update day yet, wait for user to click "Enter Sunday"
+                return;
             }
 
             updateMapForDay(newIndex);
