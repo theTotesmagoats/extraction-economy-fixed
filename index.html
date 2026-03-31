@@ -183,12 +183,18 @@
         .new-indicator.visible {
             opacity: 1;
         }
+
+        /* Special styles for high-emotion messages */
+        .bubble.emotional {
+            background: #ff6b6b !important;
+            color: white !important;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>The Upper Room Chat</h1>
-        <div class="subtitle" id="participant-count">5 participants</div>
+        <div class="subtitle" id="participant-count">7 participants</div>
     </div>
 
     <div class="controls">
@@ -223,7 +229,7 @@
             
             { 
                 from: "Peter", 
-                text: "They got him. Just... walked right up and took him.", 
+                text: "They took Him. Just... walked right up and took Him.", 
                 side: "left",
                 charClass: "char-peter"
             },
@@ -235,9 +241,10 @@
             },
             { 
                 from: "Mary (mother)", 
-                text: "Where is he? Let me see him.", 
+                text: "Where is He? Let me see my son.", 
                 side: "left",
-                charClass: "char-mary"
+                charClass: "char-mary",
+                emotional: true
             },
             { 
                 from: "Peter", 
@@ -251,7 +258,7 @@
             
             { 
                 from: "John", 
-                text: "They're taking him to Golgotha. Now.", 
+                text: "They're taking Him to Golgotha. Now.", 
                 side: "left",
                 charClass: "char-john"
             },
@@ -266,18 +273,46 @@
             
             { 
                 from: "Mary Magdalene", 
-                text: "It's over. He's gone.", 
+                text: "It's over. He's gone. Just... gone.", 
                 side: "left",
-                charClass: "char-marym"
+                charClass: "char-marym",
+                emotional: true
             },
             { 
                 from: "Peter", 
-                text: "Three crosses. The middle one... I counted the hours.", 
+                text: "Three crosses. The middle one... I counted the hours. Three hours of darkness.", 
                 side: "left",
                 charClass: "char-peter",
                 read: true
             },
+
+            // THE EARTHQUAKE MOMENT
+            { day: "", time: 62, note: "*The ground shook. Everyone felt it.*" },
             
+            { 
+                from: "John", 
+                text: "Did you feel that? The earth... it moved.", 
+                side: "left",
+                charClass: "char-john"
+            },
+            { 
+                from: "Peter", 
+                text: "The temple veil tore. I saw it. Right down the middle.", 
+                side: "left",
+                charClass: "char-peter"
+            },
+
+            // JESUS DIES
+            { day: "", time: 65, note: "*It is finished.*" },
+            
+            { 
+                from: "Mary (mother)", 
+                text: "My son. My firstborn...", 
+                side: "left",
+                charClass: "char-mary",
+                emotional: true
+            },
+
             { day: "", time: 90 },
             
             { 
@@ -288,16 +323,16 @@
             },
             { 
                 from: "Nicodemus", 
-                text: "I have spices. About seventy pounds. We won't let him be forgotten.", 
+                text: "I have spices. About seventy pounds. We won't let Him be forgotten.", 
                 side: "left",
                 charClass: "char-nicodemus"
             },
-            
+
             { day: "", time: 120, note: "*Joseph and Nicodemus join the chat*" },
             
             { 
                 from: "Peter", 
-                text: "They put him in a new tomb. A stone as big as a cart wheel rolled against it.", 
+                text: "They put Him in a new tomb. A stone as big as a cart wheel rolled against it.", 
                 side: "left",
                 charClass: "char-peter"
             },
@@ -326,39 +361,89 @@
                 side: "left",
                 charClass: "char-peter"
             },
-            
-            { day: "", time: 205, note: "*Mary Magdalene is typing...*" },
-            
+
+            // THE ANGEL (Mary's perspective)
+            { day: "", time: 203, note: "*Mary sees two angels in white*" },
+
             { 
                 from: "Mary Magdalene", 
-                text: "The tomb... it's EMPTY. They took him! I don't know who!", 
+                text: "Two men... sitting where the body was. They asked why I'm crying.", 
                 side: "left",
-                charClass: "char-marym",
-                read: true
+                charClass: "char-marym"
             },
             
+            { day: "", time: 205, note: "*Mary Magdalene is typing...*" },
+
+            { 
+                from: "Mary Magdalene", 
+                text: "The tomb... it's EMPTY. They took Him! I don't know who!", 
+                side: "left",
+                charClass: "char-marym",
+                read: true,
+                emotional: true
+            },
+
             { day: "", time: 210, note: "*Peter and John run to the tomb*" },
-            
+
+            // PETER AT THE TOMB (linen cloths with blood)
             { 
                 from: "John", 
                 text: "I got there first. Barely caught my breath.", 
                 side: "left",
                 charClass: "char-john"
             },
+            
             { 
                 from: "Peter", 
-                text: "The linen cloths... just lying there. Like he shed them.", 
+                text: "The linen cloths... just lying there. Like He shed them.", 
                 side: "left",
                 charClass: "char-peter"
             },
-            
+
+            // THE FACE CLOTH (John 20:7)
+            { 
+                from: "Peter", 
+                text: "And the face cloth... folded separately. Neat. Not thrown aside.", 
+                side: "left",
+                charClass: "char-peter"
+            },
+
+            // BLOOD STAINS (visceral detail)
+            { 
+                from: "John", 
+                text: "I saw it too. The linen... still had the marks. The spices, the blood...", 
+                side: "left",
+                charClass: "char-john"
+            },
+
+            // THE MOMENT OF BELIEF
+            { 
+                from: "Peter", 
+                text: "This wasn't stolen. Thieves don't fold things.", 
+                side: "left",
+                charClass: "char-peter",
+                read: true,
+                emotional: true
+            },
+
+            // MARY SEES JESUS
             { day: "", time: 220, note: "*Mary stands outside weeping*" },
-            
+
             { 
                 from: "Mary Magdalene", 
                 text: "They asked me why I'm crying. I said they took my Lord...", 
                 side: "left",
                 charClass: "char-marym"
+            },
+
+            { day: "", time: 225, note: "*She turns and sees Him*" },
+
+            { 
+                from: "Mary Magdalene", 
+                text: "He called my name. Just... 'Mary.' I know that voice.", 
+                side: "left",
+                charClass: "char-marym",
+                emotional: true
             },
 
             // Easter Evening
@@ -386,9 +471,18 @@
                 side: "left",
                 charClass: "char-cleopas"
             },
+
+            // THE BREAKING OF BREAD MOMENT
+            { 
+                from: "Cleopas", 
+                text: "He broke bread. Suddenly we knew... but He was gone.", 
+                side: "left",
+                charClass: "char-cleopas"
+            },
+
             { 
                 from: "Mary Magdalene", 
-                text: "I saw him too! He called my name!", 
+                text: "I saw Him too! He called my name!", 
                 side: "left",
                 charClass: "char-marym"
             },
@@ -401,21 +495,34 @@
                 side: "left",
                 charClass: "char-peter"
             },
+
+            // THOMAS (skepticism + fear)
             { 
                 from: "Thomas", 
-                text: "I need to see the wounds. Put my hand where he was pierced.", 
+                text: "Unless I see the nail marks... unless I put my hand where He was pierced...", 
                 side: "right",
                 charClass: "char-thomas"
             },
 
-            { day: "", time: 320, note: "*A presence fills the room...*" }
+            // THE PRESENCE
+            { day: "", time: 320, note: "*A presence fills the room...*" },
+            
+            // PETER'S INNER THOUGHTS (setup for Ascension sequel)
+            { 
+                from: "Peter", 
+                text: "What now? Do we wait? Do we go back to fishing?", 
+                side: "left",
+                charClass: "char-peter"
+            },
+
+            { day: "", time: 340, note: "*...to be continued on Day 40 (Ascension)*" }
         ];
 
         // State
         let currentMsg = 0;
         let speedMultiplier = 1;
         let isPlaying = true;
-        let soundEnabled = false; // Start muted (better UX)
+        let soundEnabled = false;
         const baseDelay = 8000;
 
         // Audio context for soft notification sound
@@ -427,7 +534,6 @@
             document.getElementById('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
             document.getElementById('sound-text').textContent = soundEnabled ? 'Sound On' : 'Sound Off';
             
-            // Initialize audio context on first user interaction
             if (soundEnabled && !audioContext) {
                 initAudio();
             }
@@ -440,26 +546,22 @@
         function playNotificationSound() {
             if (!soundEnabled || !audioContext) return;
             
-            // Create a soft, pleasant chime using Web Audio API
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
             
-            // Soft sine wave at a pleasant pitch
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5 note
             
-            // Gentle envelope - fade in and out
             gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.1); // Fade in
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.4);   // Fade out
+            gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.4);
             
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.5);
 
-            // Optional: Add a subtle second tone for harmony
             setTimeout(() => {
                 if (!soundEnabled || !audioContext) return;
                 
@@ -545,7 +647,6 @@
             if (msg.from && msg.text) {
                 showTyping(msg.from);
                 
-                // Play sound for real messages only (not notes/day markers)
                 playNotificationSound();
                 showNewIndicator();
                 
@@ -553,20 +654,21 @@
                     hideTyping();
                     
                     const msgDiv = document.createElement('div');
-                    msgDiv.className = `message ${msg.side} pop flash`; // Add animation classes
+                    msgDiv.className = `message ${msg.side} pop flash`;
                     
                     const charClass = msg.charClass || 'char-peter';
+                    const emotionalClass = msg.emotional ? 'emotional' : '';
                     
                     msgDiv.innerHTML = `
                         <div class="contact-name"><span class="${charClass}">${msg.from}</span></div>
-                        <div class="bubble">${msg.text}</div>
+                        <div class="bubble ${emotionalClass}">${msg.text}</div>
                         ${msg.read ? '<div class="read-receipt">Read</div>' : ''}
                         <div class="timestamp">${formatTime(msg.time)}</div>
                     `;
                     
                     chat.appendChild(msgDiv);
                     scrollToBottom();
-                }, 1000); // Typing delay before message appears
+                }, 1000);
             }
 
             if (currentMsg + 1 < messages.length) {
@@ -591,7 +693,7 @@
             const hours = Math.floor(minutes / 60);
             const mins = minutes % 60;
             const ampm = hours >= 12 ? 'PM' : 'AM';
-            let h = hours % 12 || 12;
+            let h = hours %  12 || 12;
             return `${h}:${mins.toString().padStart(2, '0')} ${ampm}`;
         }
 
