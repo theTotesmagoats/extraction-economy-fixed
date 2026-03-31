@@ -12,7 +12,6 @@
             min-height: 100vh;
         }
         
-        /* Header */
         .header {
             background: white;
             padding: 15px;
@@ -25,7 +24,6 @@
         .header h1 { font-size: 18px; color: #333; margin-bottom: 5px; }
         .header .subtitle { font-size: 12px; color: #666; }
         
-        /* Speed Controls */
         .controls { 
             padding: 10px 15px; 
             background: white; 
@@ -46,7 +44,13 @@
         }
         .controls button.active { background: #007aff; color: white; }
         
-        /* Day Marker */
+        /* Sound toggle */
+        .sound-btn { 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+        }
+
         .day-marker {
             text-align: center;
             padding: 20px 15px;
@@ -56,14 +60,12 @@
             font-weight: 600;
         }
         
-        /* Chat Container */
         .chat-container { 
             padding: 15px; 
             max-width: 600px; 
             margin: 0 auto; 
         }
         
-        /* Message Bubbles */
         .message { 
             display: flex; 
             flex-direction: column; 
@@ -97,15 +99,12 @@
             border-bottom-left-radius: 8px;
         }
         
-        /* Contact Name */
         .contact-name { font-size: 11px; color: #666; margin-bottom: 3px; padding-left: 5px; }
         .right .contact-name { text-align: right; padding-right: 5px; padding-left: 0; }
         
-        /* Timestamp */
         .timestamp { font-size: 10px; color: #999; margin-top: 4px; }
         .message.right .timestamp { text-align: right; }
         
-        /* Read Receipts */
         .read-receipt { 
             font-size: 11px; 
             color: #888; 
@@ -113,22 +112,22 @@
             margin-top: -3px;
         }
         .message.right .read-receipt { text-align: right; padding-right: 5px; }
-        
-        /* Typing Indicator */
-        .typing { 
-            display: flex; 
-            gap: 4px; 
-            padding: 10px 15px; 
-            margin-bottom: 8px;
-            opacity: 0;
+
+        /* Character initial colors */
+        .char-peter { color: #d63031 !important; font-weight: 600; }
+        .char-john { color: #0984e3 !important; font-weight: 600; }
+        .char-marym { color: #6c5ce7 !important; font-weight: 600; }
+        .char-thomas { color: #e17055 !important; font-weight: 600; }
+        .char-mary { color: #a29bfe !important; font-weight: 600; }
+        .char-joseph { color: #00b894 !important; font-weight: 600; }
+        .char-cleopas { color: #fdcb6e !important; font-weight: 600; }
+
+        .typing-name {
+            font-size: 12px;
+            color: #666;
+            padding-left: 5px;
         }
-        .typing.active { opacity: 1; animation: fadeIn 0.3s forwards; }
-        .dot { width: 8px; height: 8px; background: #999; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
         
-        /* Scroll to bottom button */
         .scroll-btn {
             position: fixed;
             bottom: 30px;
@@ -144,14 +143,45 @@
             display: none;
             z-index: 100;
         }
+
+        /* Message pop animation */
+        @keyframes messagePop {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
         
-        /* Bible Reference */
-        .bible-ref { 
-            font-size: 10px; 
-            color: #888; 
-            padding-left: 5px; 
-            margin-top: -2px;
-            font-style: italic;
+        .message.pop .bubble {
+            animation: messagePop 0.2s ease-out;
+        }
+
+        /* Visual notification flash */
+        @keyframes highlightFlash {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(0, 122, 255, 0.3); }
+        }
+        
+        .message.flash .bubble {
+            animation: highlightFlash 0.4s ease-out;
+        }
+
+        /* New message indicator */
+        .new-indicator {
+            background: #007aff;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .new-indicator.visible {
+            opacity: 1;
         }
     </style>
 </head>
@@ -165,104 +195,291 @@
         <button onclick="setSpeed(1)" id="speed-1">Fast (3 min)</button>
         <button onclick="setSpeed(2)" id="speed-2" class="active">Normal (8 min)</button>
         <button onclick="setSpeed(3)" id="speed-3">Slow (15 min)</button>
+        
+        <!-- Sound toggle -->
+        <button class="sound-btn" id="sound-toggle" onclick="toggleSound()">
+            <span id="sound-icon">🔊</span>
+            <span id="sound-text">Sound On</span>
+        </button>
     </div>
 
-    <div class="chat-container" id="chat">
-        <!-- Messages will appear here -->
+    <div class="chat-container" id="chat"></div>
+
+    <!-- Typing indicator -->
+    <div class="typing-name" id="typing-name" style="display: none;"></div>
+    <div class="typing" id="typing-indicator">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>
+
+    <!-- New message indicator -->
+    <div class="new-indicator" id="new-indicator">New Message</div>
 
     <button class="scroll-btn" id="scroll-btn" onclick="scrollToBottom()">↓</button>
 
     <script>
-        // Message data - Good Friday to Easter Evening
         const messages = [
             // Day 1: Good Friday
             { day: "Day 1 – Good Friday", time: 30 },
-            { from: "Peter", text: "They took him. Just like that.", side: "left" },
-            { from: "John", text: "I followed them to the palace. They're preparing a trial.", side: "left" },
-            { from: "Mary (mother)", text: "Where is he? I need to see him.", side: "left" },
+            
             { 
                 from: "Peter", 
-                text: "Don't go yet. The guards... they're everywhere.", 
+                text: "They got him. Just... walked right up and took him.", 
                 side: "left",
+                charClass: "char-peter"
+            },
+            { 
+                from: "John", 
+                text: "I stayed close enough to hear the chief priests whispering. They're preparing a trial before dawn.", 
+                side: "left",
+                charClass: "char-john"
+            },
+            { 
+                from: "Mary (mother)", 
+                text: "Where is he? Let me see him.", 
+                side: "left",
+                charClass: "char-mary"
+            },
+            { 
+                from: "Peter", 
+                text: "Not yet, Mary. The guards... too many of them. We'll go when it's safer.", 
+                side: "left",
+                charClass: "char-peter",
                 read: true
             },
+            
             { day: "", time: 45 },
-            { from: "John", text: "They're crucifying him. Now.", side: "left" },
-            { from: "Peter", text: "I'm going to follow. Someone needs to be there.", side: "left" },
-            { day: "", time: 60 },
-            { from: "Mary Magdalene", text: "It's done. He's dead.", side: "left" },
+            
+            { 
+                from: "John", 
+                text: "They're taking him to Golgotha. Now.", 
+                side: "left",
+                charClass: "char-john"
+            },
             { 
                 from: "Peter", 
-                text: "I counted three crosses. Middle one... was him.", 
+                text: "I'm going. Someone needs to be there.", 
                 side: "left",
+                charClass: "char-peter"
+            },
+            
+            { day: "", time: 60 },
+            
+            { 
+                from: "Mary Magdalene", 
+                text: "It's over. He's gone.", 
+                side: "left",
+                charClass: "char-marym"
+            },
+            { 
+                from: "Peter", 
+                text: "Three crosses. The middle one... I counted the hours.", 
+                side: "left",
+                charClass: "char-peter",
                 read: true
             },
+            
             { day: "", time: 90 },
-            { from: "Joseph of Arimathea", text: "I'm going to Pilate. I'll take the body.", side: "left" },
-            { from: "Nicodemus", text: "I have spices. We won't let him be forgotten.", side: "left" },
+            
             { 
-                day: "", 
-                time: 120,
-                note: "*Joseph and Nicodemus join the chat*"
+                from: "Joseph of Arimathea", 
+                text: "I'm going to Pilate. I'll take the body.", 
+                side: "left",
+                charClass: "char-joseph"
             },
-            { from: "Peter", text: "They put him in a new tomb. A stone rolled against it.", side: "left" },
-            { from: "Mary Magdalene", text: "I'm watching. I won't leave.", side: "left" },
+            { 
+                from: "Nicodemus", 
+                text: "I have spices. About seventy pounds. We won't let him be forgotten.", 
+                side: "left",
+                charClass: "char-nicodemus"
+            },
+            
+            { day: "", time: 120, note: "*Joseph and Nicodemus join the chat*" },
+            
+            { 
+                from: "Peter", 
+                text: "They put him in a new tomb. A stone as big as a cart wheel rolled against it.", 
+                side: "left",
+                charClass: "char-peter"
+            },
+            { 
+                from: "Mary Magdalene", 
+                text: "I'm watching. I won't leave.", 
+                side: "left",
+                charClass: "char-marym"
+            },
 
-            // Day 2: Holy Saturday (Silence)
+            // Day 2: Holy Saturday
             { day: "Day 2 – Holy Saturday", time: 150, note: "*The chat is quiet...*" },
 
             // Day 3: Easter Morning
             { day: "Day 3 – Resurrection Sunday", time: 200 },
-            { from: "Mary Magdalene", text: "The stone... it's GONE.", side: "left" },
-            { from: "Peter", text: "What do you mean gone?", side: "left" },
+            
             { 
                 from: "Mary Magdalene", 
-                text: "The tomb is empty. They took him! I don't know who!", 
+                text: "The stone. It's GONE.", 
                 side: "left",
+                charClass: "char-marym"
+            },
+            { 
+                from: "Peter", 
+                text: "What do you mean gone? Who moved it?", 
+                side: "left",
+                charClass: "char-peter"
+            },
+            
+            { day: "", time: 205, note: "*Mary Magdalene is typing...*" },
+            
+            { 
+                from: "Mary Magdalene", 
+                text: "The tomb... it's EMPTY. They took him! I don't know who!", 
+                side: "left",
+                charClass: "char-marym",
                 read: true
             },
-            { day: "", time: 210, note: "*Peter and John join the tomb*" },
-            { from: "John", text: "I ran faster. I got there first.", side: "left" },
+            
+            { day: "", time: 210, note: "*Peter and John run to the tomb*" },
+            
+            { 
+                from: "John", 
+                text: "I got there first. Barely caught my breath.", 
+                side: "left",
+                charClass: "char-john"
+            },
             { 
                 from: "Peter", 
                 text: "The linen cloths... just lying there. Like he shed them.", 
                 side: "left",
-                read: true
+                charClass: "char-peter"
             },
-            { day: "", time: 225, note: "*Mary Magdalene sees something*" },
-            { from: "Mary Magdalene", text: "Two men in white... they asked why I'm crying.", side: "left" },
+            
+            { day: "", time: 220, note: "*Mary stands outside weeping*" },
+            
+            { 
+                from: "Mary Magdalene", 
+                text: "They asked me why I'm crying. I said they took my Lord...", 
+                side: "left",
+                charClass: "char-marym"
+            },
 
-            // Easter Evening (Road to Emmaus & Upper Room)
+            // Easter Evening
             { day: "", time: 280, note: "*Later that evening*" },
-            { from: "Cleopas", text: "We walked all the way to Emmaus. You won't believe it.", side: "left" },
+            
+            { 
+                from: "Cleopas", 
+                text: "We walked to Emmaus. You won't believe what happened.", 
+                side: "left",
+                charClass: "char-cleopas"
+            },
             { 
                 from: "Mary (mother)", 
-                text: "Tell us everything. Please.", 
+                text: "Tell us. Please.", 
                 side: "left",
+                charClass: "char-mary",
                 read: true
             },
-            { from: "Cleopas", text: "He joined us on the road. We didn't know it was him.", side: "left" },
-            { from: "Mary Magdalene", text: "I saw him too! He called my name!", side: "left" },
+            
+            { day: "", time: 290, note: "*Cleopas continues...*" },
+            
             { 
-                day: "", 
-                time: 300,
-                note: "*The disciples are gathered in the upper room*"
+                from: "Cleopas", 
+                text: "A stranger joined us. Walked with us the whole way.", 
+                side: "left",
+                charClass: "char-cleopas"
             },
-            { from: "Peter", text: "We're all here. The doors are locked.", side: "left" },
-            { from: "Thomas", text: "Where is he? I need to see the wounds.", side: "right" },
             { 
-                day: "", 
-                time: 320,
-                note: "*A presence fills the room...*"
-            }
+                from: "Mary Magdalene", 
+                text: "I saw him too! He called my name!", 
+                side: "left",
+                charClass: "char-marym"
+            },
+
+            { day: "", time: 300, note: "*The disciples gathered in the upper room*" },
+            
+            { 
+                from: "Peter", 
+                text: "We're all here. Doors locked.", 
+                side: "left",
+                charClass: "char-peter"
+            },
+            { 
+                from: "Thomas", 
+                text: "I need to see the wounds. Put my hand where he was pierced.", 
+                side: "right",
+                charClass: "char-thomas"
+            },
+
+            { day: "", time: 320, note: "*A presence fills the room...*" }
         ];
 
         // State
         let currentMsg = 0;
-        let speedMultiplier = 1; // 1=fast, 2=normal, 3=slow
+        let speedMultiplier = 1;
         let isPlaying = true;
-        const baseDelay = 8000; // 8 seconds between messages at normal speed
+        let soundEnabled = false; // Start muted (better UX)
+        const baseDelay = 8000;
+
+        // Audio context for soft notification sound
+        let audioContext = null;
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            
+            document.getElementById('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
+            document.getElementById('sound-text').textContent = soundEnabled ? 'Sound On' : 'Sound Off';
+            
+            // Initialize audio context on first user interaction
+            if (soundEnabled && !audioContext) {
+                initAudio();
+            }
+        }
+
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playNotificationSound() {
+            if (!soundEnabled || !audioContext) return;
+            
+            // Create a soft, pleasant chime using Web Audio API
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Soft sine wave at a pleasant pitch
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5 note
+            
+            // Gentle envelope - fade in and out
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.1); // Fade in
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.4);   // Fade out
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+
+            // Optional: Add a subtle second tone for harmony
+            setTimeout(() => {
+                if (!soundEnabled || !audioContext) return;
+                
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5 note
+                
+                gain2.gain.setValueAtTime(0, audioContext.currentTime);
+                gain2.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.1);
+                gain2.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.4);
+                
+                osc2.start(audioContext.currentTime);
+                osc2.stop(audioContext.currentTime + 0.5);
+            }, 80);
+        }
 
         function setSpeed(level) {
             speedMultiplier = level;
@@ -286,10 +503,31 @@
             }
         }
 
+        function showTyping(name) {
+            document.getElementById('typing-name').textContent = name + " is typing...";
+            document.getElementById('typing-name').style.display = 'block';
+            
+            const indicator = document.getElementById('typing-indicator');
+            indicator.classList.add('active');
+        }
+
+        function hideTyping() {
+            document.getElementById('typing-name').style.display = 'none';
+            document.getElementById('typing-indicator').classList.remove('active');
+        }
+
+        function showNewIndicator() {
+            const indicator = document.getElementById('new-indicator');
+            indicator.classList.add('visible');
+            
+            setTimeout(() => {
+                indicator.classList.remove('visible');
+            }, 1500);
+        }
+
         function addMessage(msg, index) {
             const chat = document.getElementById('chat');
             
-            // Day marker
             if (msg.day && msg.time > 0) {
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'day-marker';
@@ -297,7 +535,6 @@
                 chat.appendChild(dayDiv);
             }
 
-            // Note (italic text for events)
             if (msg.note) {
                 const noteDiv = document.createElement('div');
                 noteDiv.className = 'day-marker';
@@ -305,22 +542,49 @@
                 chat.appendChild(noteDiv);
             }
 
-            // Message bubble
             if (msg.from && msg.text) {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `message ${msg.side}`;
+                showTyping(msg.from);
                 
-                msgDiv.innerHTML = `
-                    <div class="contact-name">${msg.from}</div>
-                    <div class="bubble">${msg.text}</div>
-                    ${msg.read ? '<div class="read-receipt">Read</div>' : ''}
-                    <div class="timestamp">${formatTime(msg.time)}</div>
-                `;
+                // Play sound for real messages only (not notes/day markers)
+                playNotificationSound();
+                showNewIndicator();
                 
-                chat.appendChild(msgDiv);
+                setTimeout(() => {
+                    hideTyping();
+                    
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `message ${msg.side} pop flash`; // Add animation classes
+                    
+                    const charClass = msg.charClass || 'char-peter';
+                    
+                    msgDiv.innerHTML = `
+                        <div class="contact-name"><span class="${charClass}">${msg.from}</span></div>
+                        <div class="bubble">${msg.text}</div>
+                        ${msg.read ? '<div class="read-receipt">Read</div>' : ''}
+                        <div class="timestamp">${formatTime(msg.time)}</div>
+                    `;
+                    
+                    chat.appendChild(msgDiv);
+                    scrollToBottom();
+                }, 1000); // Typing delay before message appears
             }
 
-            scrollToBottom();
+            if (currentMsg + 1 < messages.length) {
+                let delay = baseDelay / speedMultiplier;
+                delay = delay * (0.7 + Math.random() * 0.5);
+                
+                setTimeout(() => {
+                    currentMsg++;
+                    play();
+                }, delay);
+            } else {
+                isPlaying = false;
+                hideTyping();
+                const endDiv = document.createElement('div');
+                endDiv.className = 'day-marker';
+                endDiv.innerHTML = `<em style="color: #007aff">...to be continued on Day 40 (Ascension)</em>`;
+                chat.appendChild(endDiv);
+            }
         }
 
         function formatTime(minutes) {
@@ -336,28 +600,8 @@
             
             const msg = messages[currentMsg];
             addMessage(msg, currentMsg);
-            
-            currentMsg++;
-            
-            if (currentMsg < messages.length) {
-                // Calculate delay based on speed and message "weight"
-                let delay = baseDelay / speedMultiplier;
-                
-                // Add some randomness for realism
-                delay = delay * (0.8 + Math.random() * 0.4);
-                
-                setTimeout(play, delay);
-            } else {
-                isPlaying = false;
-                const chat = document.getElementById('chat');
-                const endDiv = document.createElement('div');
-                endDiv.className = 'day-marker';
-                endDiv.innerHTML = `<em style="color: #007aff">...to be continued on Day 40</em>`;
-                chat.appendChild(endDiv);
-            }
         }
 
-        // Initialize
         window.onload = () => {
             setTimeout(play, 1000);
             
