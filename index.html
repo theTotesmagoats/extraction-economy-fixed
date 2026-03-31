@@ -3,897 +3,1008 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Angler's Co-pilot | Fly Fishing + GPS Map</title>
-    
-    <!-- Leaflet.js for maps (free, no API key needed) -->
+    <title>EASTER — The 40 Days</title>
+
+    <!-- Leaflet.js for maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- Google Fonts: Inter + Playfair Display for warmth -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --primary: #2c5f47;
-            --secondary: #4a9d80;
-            --accent: #e67e22;
-            --light: #f5f5dc;
-            --dark: #1a3d2e;
-            --warning: #ff6b35;
-            --success: #27ae60;
-            --info: #3498db;
+            /* Dynamic color palette - shifts with the story */
+            --bg-primary: #fafafa;
+            --text-primary: #2a2a2a;
+            --accent-1: #E74C3C;  /* Red for cross/blood */
+            --accent-2: #D96450;  /* Warmer terracotta */
+            --accent-3: #8B4513;  /* Earth/tomb stone */
+            --light-gold: #FDB931; /* Resurrection light */
+            --dark-night: #0f1420; /* Gethsemane darkness */
+            
+            /* Emotional intensity (changes per day) */
+            --emotion-weight: 1;
+            --transition-speed: 1.5s;
         }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%);
-            color: #333;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        header {
-            text-align: center;
-            color: var(--light);
-            padding: 30px 20px;
-            border-bottom: 3px solid var(--accent);
-            margin-bottom: 30px;
-        }
-        
-        h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .subtitle { opacity: 0.9; font-style: italic; }
-        
-        section {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        h2 {
-            color: var(--primary);
-            border-bottom: 2px solid var(--secondary);
-            padding-bottom: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
-        
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: all 0.3s;
-        }
-        
-        button:hover { background: var(--secondary); transform: translateY(-2px); }
-        button.accent { background: var(--accent); }
-        button.warning { background: var(--warning); }
-        button.recording { background: #e74c3c; animation: pulse 1s infinite; }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-        }
-        
-        select, input {
-            padding: 10px;
-            border: 2px solid var(--secondary);
-            border-radius: 6px;
-            width: 100%;
-            margin-bottom: 10px;
-            font-size: 1em;
-        }
-        
-        .result-box {
-            background: var(--light);
-            border-left: 4px solid var(--accent);
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: 0 8px 8px 0;
-        }
-        
-        .result-box.warning { border-left-color: var(--warning); background: #fff3e6; }
-        .result-box.success { border-left-color: var(--success); background: #e8f5e9; }
-        .result-box.info { border-left-color: var(--info); background: #e7f3ff; }
-        
-        /* MAP STYLES (NEW!) */
-        #map-container {
-            height: 400px;
-            border-radius: 8px;
-            overflow: hidden;
-            margin: 15px 0;
-            border: 2px solid var(--secondary);
-        }
-        
-        #map {
-            height: 350px;
-            width: 100%;
-            border-radius: 8px;
-        }
-        
-        .map-controls {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-            flex-wrap: wrap;
-        }
-        
-        .filter-btn {
-            background: white;
-            color: var(--primary);
-            border: 2px solid var(--secondary);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9em;
-        }
-        
-        .filter-btn.active {
-            background: var(--primary);
-            color: white;
-        }
-        
-        /* Hot spot visualization */
-        .hot-spot-card {
-            background: linear-gradient(135deg, #fff3e6 0%, #ffe4b3 100%);
-            border-left: 4px solid var(--accent);
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 8px;
-        }
-        
-        .hot-spot-count {
-            font-size: 2em;
-            font-weight: bold;
-            color: var(--accent);
-        }
-        
-        /* Fish entry styles */
-        .fish-entry {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            transition: all 0.2s;
-        }
-        
-        .fish-entry:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-        .fish-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .fish-species { font-weight: bold; color: var(--dark); font-size: 1.1em; }
-        .fish-status { 
-            padding: 4px 12px; 
-            border-radius: 20px; 
-            font-size: 0.85em; 
-            color: white;
-        }
-        .status-kept { background: var(--success); }
-        .status-released { background: var(--info); }
-        
-        /* Stats cards */
-        .log-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin: 15px 0;
-        }
-        
-        .stat-card {
-            background: var(--light);
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-        }
-        
-        .stat-value { font-size: 2em; font-weight: bold; color: var(--primary); }
-        .stat-label { font-size: 0.9em; color: #666; margin-top: 5px; }
 
-        /* Leaflet popup styling */
-        .leaflet-popup-content-wrapper {
-            border-radius: 8px;
-            padding: 12px;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: all var(--transition-speed) ease;
+            min-height: 100vh;
         }
+
+        /* =========================
+           DARKNESS MODE (Days 1-2)
+           ========================= */
+        body.darkness-mode {
+            --bg-primary: #0f1420;
+            --text-primary: #e8e8e8;
+            background: linear-gradient(135deg, #0a0d16 0%, #1a1f2e 100%);
+        }
+
+        /* =========================
+           DAWN MODE (Day 3 - Resurrection)
+           ========================= */
+        body.dawn-mode {
+            --bg-primary: linear-gradient(180deg, #1a3a5c 0%, #4a6fa5 50%, #fcd3a7 100%);
+            --text-primary: #ffffff;
+        }
+
+        /* =========================
+           GOLDEN LIGHT MODE (Days 4-40)
+           ========================= */
+        body.golden-mode {
+            --bg-primary: linear-gradient(180deg, #fff5e6 0%, #fdebd0 100%);
+            --text-primary: #3d2c1f;
+        }
+
+        /* =========================
+           HEADER — NOW A MOMENT, NOT JUST TEXT
+           ========================= */
+        header {
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-speed) ease;
+        }
+
+        body.darkness-mode header { background: transparent; }
+        body.dawn-mode header { background: linear-gradient(135deg, #1a3a5c 0%, #4a6fa5 100%); }
+        body.golden-mode header { 
+            background: linear-gradient(135deg, #fff8f0 0%, #ffe4b3 100%);
+            color: #3d2c1f;
+        }
+
+        header h1 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            letter-spacing: 8px;
+            margin-bottom: 1rem;
+            font-size: 3.5rem;
+            transition: all var(--transition-speed) ease;
+        }
+
+        body.darkness-mode header h1 { color: #c9b8a6; }
+        body.dawn-mode header h1 { 
+            color: white;
+            text-shadow: 0 0 30px rgba(253, 185, 49, 0.6);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.7;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 1.5rem;
+        }
+
+        .emotional-pulse {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent 0%, var(--accent-1) 40%, var(--light-gold) 60%, transparent 100%);
+            animation: pulse-emotion 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse-emotion {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* =========================
+           THE MAP — NOW A LIVING PULSING HEART
+           ========================= */
+        #map-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+            margin-bottom: 2rem;
+            background: white;
+            transition: all var(--transition-speed) ease;
+        }
+
+        body.darkness-mode #map-wrapper { box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+        body.dawn-mode #map-wrapper { 
+            border: 3px solid var(--light-gold);
+            box-shadow: 0 0 60px rgba(253, 185, 49, 0.4);
+        }
+
+        #map-container { position: relative; height: 550px; }
+        #map { height: 100%; width: 100%; }
+
+        .map-overlay-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: rgba(255,255,255,0.95);
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 0.9rem;
+        }
+
+        body.darkness-mode .map-overlay-info { background: rgba(30, 40, 60, 0.95); color: #e8e8e8; }
+
+        /* =========================
+           PAUSE POINTS — THE APP BREATHES HERE
+           ========================= */
+        .pause-point {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, #fff8e1 0%, #ffe4b3 100%);
+            border-radius: 12px;
+            margin: 2rem 0;
+            font-style: italic;
+            position: relative;
+        }
+
+        body.darkness-mode .pause-point { 
+            background: linear-gradient(135deg, #1a2a40 0%, #2d3e5c 100%);
+            color: #f0f0f0;
+        }
+
+        body.dawn-mode .pause-point { 
+            background: linear-gradient(135deg, rgba(26,58,92,0.7) 0%, rgba(253,185,49,0.3) 100%);
+            color: white;
+        }
+
+        .pause-point h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            letter-spacing: 4px;
+        }
+
+        .pause-point p {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* =========================
+           THE SLIDER — NOW A JOURNEY, NOT JUST CONTROL
+           ========================= */
+        .slider-section { padding: 2rem; border-radius: 12px; background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+
+        body.darkness-mode .slider-section { background: #1a1f2e; color: #e8e8e8; }
+
+        .day-display { text-align: center; margin-bottom: 2rem; }
         
-        @media (max-width: 600px) {
-            h1 { font-size: 1.8em; }
-            .grid-2, .grid-4 { grid-template-columns: 1fr; }
-            #map-container { height: 350px; }
+        .day-number {
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: var(--accent-1);
+            transition: all var(--transition-speed) ease;
+        }
+
+        body.dawn-mode .day-number { color: var(--light-gold); text-shadow: 0 0 20px rgba(253, 185, 49, 0.5); }
+
+        .day-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            margin-top: 0.5rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(90deg, var(--accent-1) 0%, var(--light-gold) 100%);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        /* =========================
+           VERSE CARDS — SECOND-PERSON IMMERSION
+           ========================= */
+        .info-panel { padding: 2.5rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+
+        body.darkness-mode .info-panel { background: #1a1f2e; color: #e8e8e8; }
+        body.dawn-mode .info-panel { background: linear-gradient(135deg, rgba(26,58,92,0.8) 0%, rgba(74,111,165,0.6) 100%); color: white; }
+
+        .verses-container {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-left: 6px solid var(--accent-1);
+            margin-bottom: 2rem;
+            font-style: italic;
+            position: relative;
+            transition: all var(--transition-speed) ease;
+        }
+
+        body.darkness-mode .verses-container { background: #0f1420; border-left-color: #c9b8a6; }
+        body.dawn-mode .verses-container { 
+            background: linear-gradient(135deg, rgba(253,185,49,0.1) 0%, rgba(255,255,255,0.15) 100%);
+            border-left-color: var(--light-gold);
+        }
+
+        .verse { margin-bottom: 1.5rem; animation: verse-reveal 1s ease-out; }
+
+        @keyframes verse-reveal {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .verse:last-child { margin-bottom: 0; }
+
+        .verse-ref {
+            font-weight: 600;
+            color: var(--accent-1);
+            font-style: normal;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        body.darkness-mode .verse-ref { color: #c9b8a6; }
+        body.dawn-mode .verse-ref { color: var(--light-gold); }
+
+        /* =========================
+           REFLECTION PROMPTS — THE APP ASKS YOU QUESTIONS
+           ========================= */
+        .reflection-prompt {
+            background: linear-gradient(135deg, #fff8f0 0%, #ffe4b3 100%);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-top: 2rem;
+            border-left: 6px solid var(--accent-2);
+        }
+
+        body.darkness-mode .reflection-prompt { 
+            background: linear-gradient(135deg, #1a2540 0%, #2d3e5c 100%);
+            color: #f0f0f0;
+        }
+
+        .reflection-prompt h4 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            letter-spacing: 3px;
+        }
+
+        .reflection-prompt p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        /* =========================
+           HOLY SATURDAY INTERLUDE — THE SILENCE
+           ========================= */
+        #holy-saturday-interlude {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #0a0d16 0%, #1a1f2e 100%);
+            z-index: 2000;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        #holy-saturday-interlude.visible { display: flex; flex-direction: column; justify-content: center; align-items: center; animation: fade-in 1.5s ease; }
+
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+        #holy-saturday-interlude h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            letter-spacing: 12px;
+            color: #c9b8a6;
+            margin-bottom: 2rem;
+        }
+
+        #holy-saturday-interlude p {
+            font-size: 1.5rem;
+            line-height: 2;
+            color: #e8e8e8;
+            max-width: 700px;
+            margin-bottom: 3rem;
+        }
+
+        .interlude-btn {
+            padding: 1rem 3rem;
+            background: transparent;
+            border: 2px solid #c9b8a6;
+            color: #c9b8a6;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.5s ease;
+        }
+
+        .interlude-btn:hover { background: rgba(201, 184, 166, 0.1); transform: translateY(-3px); }
+
+        /* =========================
+           SOUNDSCAPE SUGGESTION — INVITATION TO FEEL
+           ========================= */
+        .soundscape-suggestion {
+            background: linear-gradient(135deg, rgba(74, 111, 165, 0.1) 0%, rgba(253, 185, 49, 0.1) 100%);
+            border-left: 4px solid var(--accent-3);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+            border-radius: 8px;
+        }
+
+        .soundscape-suggestion strong { color: var(--accent-3); display: block; margin-bottom: 0.5rem; }
+
+        /* =========================
+           GOSPEL COMPARISON — NOW VISUALLY DISTINCT
+           ========================= */
+        .gospel-panel { padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+
+        body.darkness-mode .gospel-panel { background: #1a1f2e; color: #e8e8e8; }
+
+        .gospel-toggles { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.5rem; }
+
+        .gospel-chip {
+            padding: 0.6rem 1.2rem;
+            border-radius: 20px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .gospel-chip.active { opacity: 1; transform: scale(1.05); }
+        .gospel-chip.inactive { opacity: 0.4; }
+
+        .gospel-contents { display: grid; gap: 1rem; margin-top: 1.5rem; }
+
+        .gospel-card {
+            padding: 1.25rem;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all var(--transition-speed) ease;
+        }
+
+        body.darkness-mode .gospel-card { background: #0f1420; color: #e8e8e8; }
+
+        /* =========================
+           HEATMAP & FILTERS
+           ========================= */
+        .heatmap-section { padding: 1.5rem; background: white; border-radius: 12px; margin-bottom: 2rem; display: flex; justify-content: center; align-items: center; gap: 1rem; }
+
+        body.darkness-mode .heatmap-section { background: #1a1f2e; }
+
+        /* =========================
+           FOOTER — NOW A COMMISSION, NOT JUST CLOSURE
+           ========================= */
+        footer { text-align: center; padding: 3rem; color: var(--text-primary); font-size: 0.95rem; margin-top: 2rem; }
+
+        body.dawn-mode footer { background: linear-gradient(135deg, rgba(74,111,165,0.3) 0%, rgba(253,185,49,0.2) 100%); }
+
+        .footer-note { margin-bottom: 0.75rem; }
+        .mission-statement { 
+            font-size: 1.3rem; 
+            font-family: 'Playfair Display', serif; 
+            letter-spacing: 3px; 
+            margin-top: 2rem;
+            color: var(--accent-1);
+        }
+
+        body.darkness-mode .mission-statement { color: #c9b8a6; }
+        body.dawn-mode .mission-statement { color: var(--light-gold); text-shadow: 0 0 20px rgba(253, 185, 49, 0.5); }
+
+        /* =========================
+           MOBILE RESPONSIVENESS
+           ========================= */
+        @media (max-width: 768px) {
+            header h1 { font-size: 2.2rem; letter-spacing: 4px; }
+            #map-container { height: 400px; }
+            .day-number { font-size: 2.5rem; }
+            .pause-point, .info-panel, .gospel-panel, .slider-section { padding: 1.5rem; }
+            .interlude-btn { padding: 0.8rem 2rem; font-size: 1rem; }
+        }
+
+        /* =========================
+           CHARACTER CHIPS
+           ========================= */
+        .characters-section { padding: 1.5rem; background: white; border-radius: 12px; margin-bottom: 2rem; }
+        body.darkness-mode .characters-section { background: #1a1f2e; }
+
+        .character-chips { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
+
+        .chip {
+            padding: 0.6rem 1.2rem;
+            border-radius: 20px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .chip:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .chip.active { border-width: 3px; }
+
+        /* =========================
+           THE HEAVY MOMENT STYLES (for Day 1-2)
+           ========================= */
+        .heavy-moment {
+            font-size: 1.4rem;
+            line-height: 1.9;
+            padding: 1.5rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+
+        body.dawn-mode .heavy-moment { 
+            background: rgba(255,255,255,0.1); 
+            font-style: italic;
+        }
+
+        /* =========================
+           ANIMATION CLASS FOR REVEALS
+           ========================= */
+        .reveal-up { animation: reveal-up 0.8s ease-out; }
+
+        @keyframes reveal-up {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body>
+<body class="darkness-mode">
+    <header>
+        <div class="emotional-pulse"></div>
+        <h1>EASTER</h1>
+        <div class="subtitle">40 Days • From Cross to Crown</div>
+    </header>
+
+    <!-- HOLY SATURDAY INTERLUDE (Hidden by default, shown between Day 2 and 3) -->
+    <div id="holy-saturday-interlude">
+        <h2>HOLY SATURDAY</h2>
+        <p>The stone is rolled.<br>The tomb is sealed.<br>The world holds its breath.</p>
+        <p style="margin-top:2rem; font-size:1.3em;">"He has risen...?"<br><small>(Take a moment to breathe in the silence)</small></p>
+        <button class="interlude-btn" onclick="closeHolySaturday()">Enter Sunday</button>
+    </div>
+
     <div class="container">
-        <header>
-            <h1>🎣 The Angler's Co-pilot</h1>
-            <p class="subtitle">AI-powered fly fishing intelligence + GPS mapping</p>
-        </header>
-
-        <!-- ============================================ -->
-        <!-- SECTION 0: MAP & HOT SPOTS (NEW!) -->
-        <!-- ============================================ -->
-        <section id="map-section">
-            <h2>🗺️ Catch Map & Hot Spots</h2>
-            <p style="margin-bottom:15px;"><em>Your productive waters, visualized. Click markers for details.</em></p>
-            
-            <!-- Location Controls -->
-            <div class="map-controls">
-                <button id="get-location-btn" onclick="getCurrentLocation()">📍 Get My Location</button>
-                <button onclick="zoomToHotSpots()" style="background:var(--accent);">🔥 Zoom to Hot Spots</button>
-                <button onclick="clearMapMarkers()" style="background:#999;">✕ Clear Markers</button>
-            </div>
-
-            <!-- Filter Controls -->
-            <div class="map-controls" id="filter-buttons">
-                <span style="font-weight:bold; margin-right:10px;">Show:</span>
-                <button class="filter-btn active" onclick="setMapFilter('all', this)">All</button>
-                <button class="filter-btn" onclick="setMapFilter('trout', this)">🐟 Trout</button>
-                <button class="filter-btn" onclick="setMapFilter('kept', this)">✅ Kept</button>
-                <button class="filter-btn" onclick="setMapFilter('released', this)">🌊 Released</button>
-            </div>
-
-            <!-- Map Container -->
+        <!-- MAP SECTION -->
+        <div id="map-wrapper">
             <div id="map-container">
                 <div id="map"></div>
             </div>
-
-            <!-- Hot Spots Summary -->
-            <h4 style="margin-top:20px;">🔥 Your Best Waters</h4>
-            <div id="hot-spots-display">
-                <p style="color:#666; font-style:italic;"><em>Add 5+ catch entries to see your productive hot spots.</em></p>
+            <div class="map-overlay-info" id="map-info-text">
+                Jerusalem • 33 AD<br>
+                <small style="opacity:0.7;">Follow the path</small>
             </div>
 
-            <!-- Current Location Display -->
-            <div class="result-box info" style="margin-top:15px;">
-                <strong>📍 Current GPS:</strong> 
-                <span id="gps-display">Not yet determined (click "Get My Location")</span>
-                <button onclick="useCurrentLocationForLog()" style="margin-left:10px; padding:8px 16px; font-size:0.9em;">Use for Next Log</button>
-            </div>
-        </section>
-
-        <!-- ============================================ -->
-        <!-- SECTION 1: FISHING LOG -->
-        <!-- ============================================ -->
-        <section id="fishing-log">
-            <h2>📊 Live Fishing Log</h2>
-            
-            <!-- Session Header with Location -->
-            <div class="result-box info">
-                <strong>📅 Session:</strong> <span id="session-date"></span><br>
-                <strong>🌊 Location:</strong> 
-                <input type="text" id="location-input" placeholder="e.g., Arkansas River, Section B" style="width: 300px; margin-top: 5px;">
-                <div style="margin-top:8px; font-size:0.9em;">
-                    <strong>📍 GPS:</strong> 
-                    <span id="log-gps">Will auto-fill from map</span>
-                </div>
+            <!-- Toggle buttons -->
+            <div style="position:absolute; top:15px; right:15px; z-index:1000; display:flex; gap:0.5rem;">
+                <button id="btn-modern" class="active" style="padding:0.6rem 1.2rem; border:none; background:white; cursor:pointer; border-radius:6px;" onclick="switchMap('modern')">Modern</button>
+                <button id="btn-historical" style="padding:0.6rem 1.2rem; border:none; background:white; cursor:pointer; border-radius:6px;" onclick="switchMap('historical')">Historical</button>
             </div>
 
-            <!-- Quick Log Buttons -->
-            <h4 style="margin-top:20px; margin-bottom:10px;">⚡ Quick Add Fish</h4>
-            <div class="quick-log" id="quick-log-buttons">
-                <button class="quick-btn" onclick="presetLog('hook')">🎣 Hooked</button>
-                <button class="quick-btn" onclick="presetLog('land')">✅ Landed</button>
-                <button class="quick-btn" onclick="presetLog('release')">🌊 Released</button>
-                <button class="quick-btn" onclick="presetLog('keep')">🏠 Kept</button>
+            <!-- Legend -->
+            <div class="map-overlay-info" style="top:auto; bottom:15px; left:15px;">
+                <strong>Locations:</strong><br>
+                <span style="color:#D4AF37">●</span> Golgotha<br>
+                <span style="color:#8B4513">●</span> Tomb<br>
+                <span style="color:#4A90D9">●</span> Upper Room<br>
+                <span style="color:#2ECC71">●</span> Mount of Olives
+            </div>
+        </div>
+
+        <!-- SLIDER SECTION -->
+        <div class="slider-section">
+            <div class="day-display">
+                <div class="day-number" id="current-day-num">Day 1</div>
+                <div class="day-title" id="current-day-title">Good Friday — The Cross</div>
+            </div>
+            <input type="range" id="timeline-slider" min="0" value="0" />
+        </div>
+
+        <!-- CHARACTER CHIPS -->
+        <div class="characters-section">
+            <div class="character-chips" id="character-chips"></div>
+        </div>
+
+        <!-- PAUSE POINT (Appears at key moments) -->
+        <div id="pause-point-display" style="display:none;"></div>
+
+        <!-- HEAVY MOMENT TEXT (For emotional weight days) -->
+        <div id="heavy-moment-display" class="heavy-moment" style="display:none;"></div>
+
+        <!-- SOUNDSCAPE SUGGESTION -->
+        <div class="soundscape-suggestion" id="sound-suggest">
+            <strong>🎧 For this moment...</strong>
+            <span id="sound-text">Quiet, slow breathing. Maybe distant wind.</span>
+        </div>
+
+        <!-- REFLECTION PROMPT (Appears at key moments) -->
+        <div class="reflection-prompt" id="reflection-prompt" style="display:none;">
+            <h4>Pause here.</h4>
+            <p id="prompt-text">What do you feel in your chest right now?</p>
+        </div>
+
+        <!-- GOSPEL COMPARISON -->
+        <div class="gospel-panel">
+            <div style="font-family:'Playfair Display', serif; font-size:1.4rem; margin-bottom:1rem;">📜 Four Witnesses</div>
+            <div class="gospel-toggles" id="gospel-toggles"></div>
+            <div class="gospel-contents" id="gospel-contents"></div>
+        </div>
+
+        <!-- INFO PANEL (Verses + Context) -->
+        <div class="info-panel">
+            <h3 style="font-family:'Playfair Display', serif; margin-bottom:1.5rem;">📖 What Happened</h3>
+            <div class="verses-container" id="verses-display"></div>
+
+            <!-- Context Section -->
+            <div style="background:#fff8e1; padding:1.5rem; border-radius:6px; margin-top:1.5rem;">
+                <strong style="color:#8b7355">Historical Context</strong>
+                <ul id="context-display" style="margin-left:1.5rem; margin-top:0.75rem; line-height:1.6;"></ul>
             </div>
 
-            <!-- Manual Entry Form -->
-            <div class="grid-2">
-                <div id="manual-form">
-                    <h4 style="margin-bottom:10px;">📝 Full Entry</h4>
-                    
-                    <label>Fish Status:</label>
-                    <select id="log-status" onchange="updateStatusColor()">
-                        <option value="hooked">Hooked (on the line)</option>
-                        <option value="landed">Landed (in hand)</option>
-                        <option value="released">Released</option>
-                        <option value="kept">Kept for eating</option>
-                    </select>
+            <!-- Gospel Full Text (Detailed) -->
+            <div class="gospel-contents" id="full-gospel-content" style="margin-top:2rem; border-top:1px solid #ddd; padding-top:1.5rem;"></div>
+        </div>
 
-                    <label>Fish Species:</label>
-                    <select id="log-species">
-                        <option value="">-- Select --</option>
-                        <option value="rainbow">Rainbow Trout</option>
-                        <option value="brown">Brown Trout</option>
-                        <option value="brook">Brook Trout</option>
-                        <option value="cutthroat">Cutthroat Trout</option>
-                    </select>
+        <!-- HEATMAP TOGGLE -->
+        <div class="heatmap-section">
+            <span style="font-weight:600;">🔥 Show All Locations</span>
+            <label style="position:relative; width:50px; height:26px; cursor:pointer;">
+                <input type="checkbox" id="heatmap-toggle" style="opacity:0; width:0; height:0;" />
+                <div style="position:absolute; inset:0; background:#ccc; border-radius:26px; transition:0.4s;"></div>
+                <div style="position:absolute; left:3px; bottom:3px; width:20px; height:20px; background:white; border-radius:50%; transition:0.4s;" id="heatmap-slider"></div>
+            </label>
+        </div>
 
-                    <label>Fly Pattern:</label>
-                    <input type="text" id="log-fly-pattern" placeholder="e.g., Elk Hair Caddis">
-
-                    <div class="grid-2" style="margin-top:0;">
-                        <div>
-                            <label>Fly Size:</label>
-                            <select id="log-fly-size">
-                                <option value="">-- Any --</option>
-                                <option value="2">Size 2</option>
-                                <option value="6">Size 6</option>
-                                <option value="10">Size 10</option>
-                                <option value="14">Size 14</option>
-                                <option value="18">Size 18</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label>Fly Color:</label>
-                            <select id="log-fly-color">
-                                <option value="">-- Any --</option>
-                                <option value="brown">Brown</option>
-                <option value="olive">Olive</option>
-                                <option value="gray">Gray</option>
-                                <option value="black">Black</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <label>Fish Length (inches):</label>
-                    <input type="number" id="log-length" placeholder="e.g., 14">
-
-                    <button class="accent" onclick="addLogEntry()">Add to Log + Map</button>
-                </div>
-
-                <!-- Live Statistics -->
-                <div>
-                    <h4 style="margin-bottom:10px;">📈 Session Stats</h4>
-                    
-                    <div class="log-stats">
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-hooked">0</div>
-                            <div class="stat-label">Hooked</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-landed">0</div>
-                            <div class="stat-label">Landed</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-released">0</div>
-                            <div class="stat-label">Released</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-kept">0</div>
-                            <div class="stat-label">Kept</div>
-                        </div>
-                    </div>
-
-                    <button onclick="exportLogs()" style="width:100%; margin-top:15px;">📥 Export Logs (JSON)</button>
-                </div>
-            </div>
-
-            <!-- Log Entries -->
-            <h4 style="margin-top:20px; margin-bottom:10px;">📋 Recent Entries</h4>
-            <div id="log-entries">
-                <p style="color:#666; font-style:italic;"><em>No entries yet. Start fishing!</em></p>
-            </div>
-        </section>
-
-        <!-- ============================================ -->
-        <!-- SECTION 2: REGULATIONS ENGINE -->
-        <!-- ============================================ -->
-        <section id="regulations">
-            <h2>📜 Regulations Engine</h2>
-            
-            <div class="grid-2">
-                <div>
-                    <label>Select State:</label>
-                    <select id="state-select" onchange="updateSpecies()">
-                        <option value="">-- Choose --</option>
-                        <option value="CO">Colorado 🏔️</option>
-                        <option value="MT">Montana 🌲</option>
-                        <option value="WY">Wyoming 🦬</option>
-                    </select>
-                    
-                    <label>Select Species:</label>
-                    <select id="species-select" onchange="showRegulations()">
-                        <option value="">-- Choose state first --</option>
-                    </select>
-                    
-                    <button class="accent" onclick="getLicenseInfo()">Show License Info</button>
-                </div>
-                
-                <div id="reg-display">
-                    <p style="color:#666; font-style:italic;"><em>Select state and species...</em></p>
-                </div>
-            </div>
-        </section>
-
-        <!-- FOOTER -->
-        <footer style="text-align: center; color: var(--light); padding: 20px;">
-            <p>Made with physics, biology, and GPS. Your friend's still the guide—you're just smarter now.</p>
-            <small>⚠️ Disclaimer: Verify regulations at state wildlife agency.</small>
-        </footer>
     </div>
 
+    <footer>
+        <p class="footer-note">Bible verses: New International Version (NIV)</p>
+        <p class="mission-statement" id="mission-text">He is not here. He has risen.</p>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <script>
-        // ==========================================
-        // MAP & GEOLOCATION (NEW!)
-        // ==========================================
+        // =========================
+        // THE DATA — NOW WITH EMOTIONAL WEIGHT
+        // =========================
         
-        let map;
-        let markers = [];
-        let currentLocation = null;
-        let mapFilter = 'all';
+        const characters = [
+            { id: "jesus", name: "Jesus", color: "#D4AF37" },
+            { id: "mary_magdalene", name: "Mary Magdalene", color: "#E91E63" },
+            { id: "peter", name: "Peter", color: "#2196F3" },
+            { id: "john", name: "John", color: "#4CAF50" },
+            { id: "mary_mother", name: "Mary (mother)", color: "#9C27B0" },
+            { id: "thomas", name: "Thomas", color: "#03A9F4" }
+        ];
 
-        // Initialize the map when page loads
+        const locations = {
+            golgotha: { lat: 31.7806, lng: 35.2298, name: "Golgotha" },
+            tomb: { lat: 31.7790, lng: 35.2305, name: "Tomb of Jesus" },
+            upper_room: { lat: 31.7740, lng: 35.2300, name: "Upper Room" },
+            mount_olives: { lat: 31.7800, lng: 35.2450, name: "Mount of Olives" },
+            garden_gethsemane: { lat: 31.7785, lng: 35.2460, name: "Gethsemane" }
+        };
+
+        // GOSPEL DATA — SECOND-PERSON IMMERSION
+        const gospelData = {
+            day1: {
+                matthew: [
+                    { ref: "Matthew 27:35", text: "They crucified him. You're watching them divide His clothes, casting lots for a robe." },
+                    { ref: "Matthew 27:46", text: "He cries out: 'My God, my God, why have you forsaken me?' The words hang in the air before darkness falls." }
+                ],
+                mark: [
+                    { ref: "Mark 15:34", text: "At three in the afternoon, Jesus cries out in a loud voice. You hear it. Everyone hears it." },
+                    { ref: "Mark 15:37", text: "He breathes his last. The stone will be rolled before sunset." }
+                ],
+                luke: [
+                    { ref: "Luke 23:46", text: "'Father, into your hands I commit my spirit.' He speaks to You. Not to them—to You." },
+                    { ref: "Luke 23:53", text: "Joseph takes the body down. You watch him wrap it in linen. No one else dares approach." }
+                ],
+                john: [
+                    { ref: "John 19:30", text: "'It is finished.' The words are final. Complete. He bows His head. You're still standing there." },
+                    { ref: "John 19:34", text: "A soldier pierces His side. Blood and water flow. It's real. It happened." }
+                ]
+            },
+            day3: {
+                matthew: [
+                    { ref: "Matthew 28:5-6", text: "'He is not here; he has risen!' The angel's voice shakes the ground. You're still processing when the light floods in." }
+                ],
+                mark: [
+                    { ref: "Mark 16:6", text: "'Don't be amazed! Jesus of Nazareth... has risen.' Mary Magdalene drops the spices. The stone is rolled back." }
+                ],
+                luke: [
+                    { ref: "Luke 24:5-6", text: "'Why do you look for the living among the dead? He is not here; he has risen!' You're on your knees at the tomb, and suddenly—light." },
+                    { ref: "Luke 24:13-35", text: "On the road to Emmaus, two disciples walk with someone they don't recognize. 'It was Jesus.' They return to Jerusalem, hearts burning." }
+                ],
+                john: [
+                    { ref: "John 20:16", text: "'Mary!' He speaks her name. You know that voice—how could you forget it? She turns, and suddenly she's weeping with joy." },
+                    { ref: "John 20:17", text: "'I am ascending to my Father.' The tomb is empty, but something heavier has filled the air: hope." }
+                ]
+            },
+            day40: {
+                matthew: [
+                    { ref: "Matthew 28:19-20", text: "'Go and make disciples...' He's not just leaving—you're being sent. The words land like a weight in your chest." }
+                ],
+                luke: [
+                    { ref: "Luke 24:51", text: "He was taken up into heaven. You're watching, neck craned, trying to hold the image before He disappears completely." },
+                    { ref: "Luke 24:53", text: "They returned to Jerusalem with great joy. Joy? After everything? And yet... it's there." }
+                ],
+                john: [
+                    { ref: "John 17", text: "'I have brought you glory on earth.' You're in the Upper Room, listening to His final prayer for them—and somehow, for you too." }
+                ]
+            }
+        };
+
+        // THE TIMELINE — NOW WITH EMOTIONAL WEIGHT
+        const baseTimeline = [
+            {
+                day: 1,
+                title: "Good Friday — The Weight of the World",
+                mood: "darkness",
+                time: "night",
+                verses: [{ ref: "John 19:30", text: "'It is finished.' He bows His head. You're standing there." }],
+                context: [
+                    "Roman crucifixion was public, brutal execution for slaves and rebels.",
+                    "Three hours of darkness fell at noon (Matthew 27:45).",
+                    "Jewish law required burial before sundown."
+                ],
+                pause_text: "Take a breath. This is the cross. The weight you carry? He carried this.",
+                reflection: "What does it mean that He bore your shame, your failures, your sins?",
+                sound: "Silence. Maybe distant wind. Or nothing at all."
+            },
+            {
+                day: 2,
+                title: "Holy Saturday — The Silence",
+                mood: "darkness",
+                time: "daylight",
+                verses: [{ ref: "Matthew 27:64", text: "'Go make the tomb as secure as you know how.' They sealed it. You're waiting for something that won't come until dawn." }],
+                context: [
+                    "The Sabbath (Saturday) was observed strictly; no work permitted.",
+                    "Roman guards were placed to prevent body theft.",
+                    "This is the longest silence in human history."
+                ],
+                pause_text: "The tomb is sealed. The stone is rolled. Nothing happens. That's the point.",
+                reflection: "Can you sit with the uncertainty? With the feeling that maybe... this was it?",
+                sound: "Your breathing. Just your breathing."
+            },
+            {
+                day: 3,
+                title: "Resurrection Sunday — Light Breaks",
+                mood: "dawn",
+                time: "dawn",
+                verses: [{ ref: "John 20:16", text: "'Mary!' He speaks her name. She turns. The stone is rolled back." }],
+                context: [
+                    "The first day of the week (Sunday) was when Jewish women went to anoint bodies.",
+                    "Emmaus was approximately 7 miles west of Jerusalem.",
+                    "This is the hinge on which all history turns."
+                ],
+                pause_text: "He has risen. Sit with that. Let it land in your bones.",
+                reflection: "If you were Mary at the tomb, what would you say first? 'I thought...' or 'You're alive?'",
+                sound: "Morning birds. A soft chime. Something light."
+            },
+            { day: 5, title: "Day 5 — Doubts Fade", mood: "golden", time: "daylight", verses: [{ ref: "John 20:19-20", text: "'Peace be with you.' Jesus came and stood among them. Thomas wasn't there." }], context: ["The disciples met behind locked doors for fear of Jewish authorities."], pause_text: "", reflection: "", sound: "" },
+            { day: 7, title: "Day 7 — 'Doubting' Thomas Believes", mood: "golden", time: "daylight", verses: [{ ref: "John 20:27", text: "'Put your finger here; see my hands.' He didn't scold him. He invited him." }], context: ["One week had passed since the first appearance."], pause_text: "", reflection: "", sound: "" },
+            { day: 15, title: "Day 15 — By the Sea of Galilee", mood: "golden", time: "daylight", verses: [{ ref: "John 21:15-17", text: "'Simon son of John, do you love me?' Three times. He asked three times—after Peter denied Him three times." }], context: ["Peter made a three-fold declaration of love, restoring him after his denial."], pause_text: "", reflection: "What would you say if He asked you? And what if He kept asking?", sound: "" },
+            { day: 25, title: "Day 25 — Return to Jerusalem", mood: "golden", time: "daylight", verses: [{ ref: "Acts 1:3-4", text: "'He appeared to them over a period of forty days and spoke about the kingdom of God.' You're listening. He's talking." }], context: ["Jesus prepared disciples for his departure by teaching them about the Kingdom."], pause_text: "", reflection: "", sound: "" },
+            { day: 35, title: "Day 35 — Final Teachings", mood: "golden", time: "daylight", verses: [{ ref: "John 14:18", text: "'I will not leave you as orphans; I will come to you.' He's leaving—but not for good." }], context: ["Jesus promised the coming of the Holy Spirit (the Advocate)."], pause_text: "", reflection: "", sound: "" },
+            { day: 40, title: "Day 40 — The Ascension", mood: "golden", time: "daylight", verses: [{ ref: "Luke 24:51", text: "He was taken up into heaven. You're watching." }], context: ["The 40-day period fulfills Acts 1:3.", "Two men in white (angels) promised Jesus' return."], pause_text: "He's gone. And yet—He's not. What do you do with that?", reflection: "Where does He go when you close your eyes? Where is He now?", sound: "" }
+        ];
+
+        // Build full 40-day timeline (filling gaps)
+        function buildTimeline(seedTimeline) {
+            const byDay = new Map(seedTimeline.map(item => [item.day, item]));
+            const full = [];
+            let lastKnown = null;
+
+            for (let day = 1; day <= 40; day++) {
+                if (byDay.has(day)) {
+                    const explicitDay = byDay.get(day);
+                    full.push({ ...explicitDay });
+                    lastKnown = explicitDay;
+                    continue;
+                }
+
+                // Fill gaps with carried-over data
+                let positions = {};
+                if (day >= 25) {
+                    positions = { jesus: [{...locations.upper_room}] };
+                } else if (lastKnown && lastKnown.positions) {
+                    positions = JSON.parse(JSON.stringify(lastKnown.positions));
+                }
+
+                full.push({
+                    day,
+                    title: `Day ${day}`,
+                    mood: 'golden',
+                    time: 'daylight',
+                    verses: [{ ref: "Acts 1:3", text: "Jesus appeared to them over a period of forty days..." }],
+                    context: ["A period of teaching and appearances before the Ascension."],
+                    pause_text: "",
+                    reflection: "",
+                    sound: "",
+                    positions,
+                    gospelDay: null
+                });
+            }
+
+            return full;
+        }
+
+        const timeline = buildTimeline(baseTimeline);
+
+        // =========================
+        // MAP INITIALIZATION
+        // =========================
+        
+        let map, markers = [], currentDayIndex = 0;
+        
         function initMap() {
-            // Default to somewhere fishable (Colorado Rockies)
-            const defaultCenter = [39.7392, -104.9903]; // Denver area
-            
-            map = L.map('map').setView(defaultCenter, 8);
+            map = L.map('map', { zoomControl: true }).setView([31.78, 35.23], 14);
 
-            // Add OpenStreetMap tiles (free, no API key needed!)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 19
+            const modernTiles = new L.TileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+                minZoom: 10, maxZoom: 19, attribution: '© OpenStreetMap contributors © CARTO'
             }).addTo(map);
 
-            // Add click handler to set location on map
-            map.on('click', function(e) {
-                currentLocation = [e.latlng.lat, e.latlng.lng];
-                updateGPSDisplay();
-                
-                // Show marker where clicked
-                if (map.getLayers().length > 10) {
-                    clearMapMarkers(); // Prevent too many markers
+            const historicalBaseTiles = new L.TileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { minZoom: 10, maxZoom: 19 });
+            const historicalBounds = [[31.7688, 35.2218], [31.7868, 35.2478]];
+
+            function buildHistoricalSvg() {
+                return `
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900">
+                        <rect width="1200" height="900" fill="#efe2c4"/>
+                        <polygon points="235,180 755,180 820,280 798,670 618,770 260,728 170,470 175,245" fill="#e2d5b1" stroke="#6b5844" stroke-width="12"/>
+                        <text x="600" y="70" text-anchor="middle" font-size="44" font-weight="700" fill="#47341f">Jerusalem in the Time of Jesus</text>
+                        <circle cx="315" cy="238" r="15" fill="#2f2f2f"/>
+                        <text x="290" y="230" font-size="24" font-weight="700" fill="#1f1f1f">Golgotha</text>
+                    </svg>
+                `;
+            }
+
+            const historicalSvgUri = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(buildHistoricalSvg());
+            const historicalOverlay = L.imageOverlay(historicalSvgUri, historicalBounds, { opacity: 0.93 });
+
+            let currentMapMode = 'modern';
+
+            window.switchMap = function(type) {
+                currentMapMode = type;
+                if (type === 'historical') {
+                    if (!map.hasLayer(modernTiles)) map.addLayer(modernTiles);
+                    if (!map.hasLayer(historicalOverlay)) historicalOverlay.addTo(map);
+                } else {
+                    if (map.hasLayer(historicalBaseTiles)) map.removeLayer(historicalBaseTiles);
+                    if (map.hasLayer(historicalOverlay)) map.removeLayer(historicalOverlay);
                 }
-                
-                L.marker(currentLocation).addTo(map)
-                    .bindPopup('📍 Clicked location')
-                    .openPopup();
+            };
+
+            // Initialize character chips
+            const charContainer = document.getElementById('character-chips');
+            characters.forEach(char => {
+                const chip = document.createElement('div');
+                chip.className = 'chip active';
+                chip.innerHTML = `<span style="color:${char.color}">●</span> ${char.name}`;
+                chip.onclick = () => updateMapForDay(currentDayIndex);
+                charContainer.appendChild(chip);
             });
 
-            loadLogs();
-            updateLogDisplay();
-            updateStats();
+            // Initialize gospel toggles
+            const gospelToggles = document.getElementById('gospel-toggles');
+            ['matthew', 'mark', 'luke', 'john'].forEach((gospel, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'gospel-chip active';
+                chip.innerHTML = `<span style="color:${['#E74C3C','#2980B9','#27AE60','#9B59B6'][i]}">●</span> ${gospel.charAt(0).toUpperCase() + gospel.slice(1)}`;
+                chip.onclick = () => updateGospelContents();
+                gospelToggles.appendChild(chip);
+            });
+
+            // Update map for initial day
+            updateMapForDay(0);
         }
 
-        // Get current GPS position from device
-        function getCurrentLocation() {
-            if (!navigator.geolocation) {
-                alert('Geolocation not supported by your browser. Try Chrome or Safari.');
-                return;
-            }
+        // =========================
+        // CORE UPDATE FUNCTION — NOW WITH MOOD SHIFTS
+        // =========================
+        
+        function updateMapForDay(dayIndex) {
+            const dayData = timeline[dayIndex];
+            if (!dayData) return;
 
-            const btn = document.getElementById('get-location-btn');
-            btn.textContent = '📍 Getting...';
-            btn.classList.add('recording');
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    currentLocation = [position.coords.latitude, position.coords.longitude];
-                    updateGPSDisplay();
-                    
-                    // Center map on user's location
-                    map.setView(currentLocation, 14);
-                    
-                    // Add marker for current location
-                    L.marker(currentLocation).addTo(map)
-                        .bindPopup('📍 You are here').openPopup();
-                    
-                    btn.textContent = '📍 Got Location!';
-                    setTimeout(() => {
-                        btn.textContent = '📍 Get My Location';
-                        btn.classList.remove('recording');
-                    }, 2000);
-                },
-                (error) => {
-                    alert('GPS failed: ' + error.message + '. Try clicking on the map instead.');
-                    btn.textContent = '📍 Get My Location';
-                    btn.classList.remove('recording');
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        }
-
-        // Update GPS display in UI
-        function updateGPSDisplay() {
-            if (currentLocation) {
-                document.getElementById('gps-display').textContent = 
-                    `${currentLocation[0].toFixed(6)}, ${currentLocation[1].toFixed(6)}`;
-                
-                // Also set the log-GPS field for next entry
-                document.getElementById('log-gps').textContent = 
-                    `${currentLocation[0].toFixed(4)}°, ${currentLocation[1].toFixed(4)}°`;
+            currentDayIndex = dayIndex;
+            
+            // Update UI elements
+            document.getElementById('current-day-num').textContent = `Day ${dayData.day}`;
+            document.getElementById('current-day-title').textContent = dayData.title;
+            
+            // MOOD SHIFT — This is the magic
+            const body = document.body;
+            if (dayData.mood === 'darkness') {
+                body.className = 'darkness-mode';
+            } else if (dayData.mood === 'dawn') {
+                body.className = 'dawn-mode';
             } else {
-                document.getElementById('gps-display').textContent = 'Not yet determined';
+                body.className = 'golden-mode';
+            }
+
+            // Update verses
+            document.getElementById('verses-display').innerHTML = dayData.verses.map(v => `
+                <div class="verse"><span class="verse-ref">${v.ref}</span> "${v.text}"</div>
+            `).join('');
+
+            // Update context
+            document.getElementById('context-display').innerHTML = dayData.context.map(item => `<li>${item}</li>`).join('');
+
+            // PAUSE POINT (if exists)
+            const pauseDisplay = document.getElementById('pause-point-display');
+            if (dayData.pause_text && !dayData.isHolySaturdayShown) {
+                pauseDisplay.style.display = 'block';
+                pauseDisplay.className = 'pause-point reveal-up';
+                pauseDisplay.innerHTML = `
+                    <h3>${['Day 1', 'Day 2', 'Day 3', 'Day 40'][dayIndex] || `Day ${dayData.day}`}</h3>
+                    <p>${dayData.pause_text}</p>
+                `;
+            } else {
+                pauseDisplay.style.display = 'none';
+            }
+
+            // HEAVY MOMENT (for Day 1 and 2)
+            const heavyMoment = document.getElementById('heavy-moment-display');
+            if (dayIndex < 3) {
+                heavyMoment.style.display = 'block';
+                heavyMoment.innerHTML = `
+                    ${dayData.title}<br>
+                    <small style="opacity:0.7; font-size:1rem;">${dayData.context[0] || ''}</small>
+                `;
+            } else {
+                heavyMoment.style.display = 'none';
+            }
+
+            // SOUNDSCAPE SUGGESTION
+            document.getElementById('sound-text').textContent = dayData.sound || "Quiet, focused breathing.";
+
+            // REFLECTION PROMPT
+            const reflectionPrompt = document.getElementById('reflection-prompt');
+            if (dayData.reflection) {
+                reflectionPrompt.style.display = 'block';
+                reflectionPrompt.querySelector('#prompt-text').textContent = dayData.reflection;
+            } else {
+                reflectionPrompt.style.display = 'none';
+            }
+
+            // Update Gospel content
+            updateGospelContents();
+
+            // Map markers (simplified for clarity)
+            clearMapMarkers();
+            if (dayData.positions) {
+                Object.entries(dayData.positions).forEach(([charId, positions]) => {
+                    const char = characters.find(c => c.id === charId);
+                    if (!char || !positions || positions.length === 0) return;
+
+                    const lastPos = positions[positions.length - 1];
+                    const marker = L.circleMarker([lastPos.lat, lastPos.lng], {
+                        radius: char.id === 'jesus' ? 12 : 6,
+                        color: '#D4AF37',
+                        fillColor: char.color,
+                        fillOpacity: 0.9,
+                        weight: 2
+                    }).addTo(map);
+
+                    marker.bindTooltip(`${char.name} — ${lastPos.name}`);
+                    markers.push(marker);
+                });
             }
         }
 
-        // Use current location for next log entry
-        function useCurrentLocationForLog() {
-            if (!currentLocation) {
-                alert('Get your GPS position first!');
-                return;
-            }
-            
-            const lat = currentLocation[0].toFixed(4);
-            const lon = currentLocation[1].toFixed(4);
-            
-            // Populate location input with coordinates
-            document.getElementById('location-input').value = `${lat}°, ${lon}°`;
-            document.getElementById('log-gps').textContent = `✓ Auto-filled: ${lat}°, ${lon}°`;
-        }
-
-        // Add marker to map for a catch
-        function addMapMarker(entry) {
-            if (!entry.lat || !entry.lng) return;
-
-            const latlng = [entry.lat, entry.lng];
-            
-            // Color by status
-            let color = '#3498db'; // blue (general)
-            if (entry.status === 'kept') color = '#27ae60'; // green
-            else if (entry.status === 'released') color = '#e67e22'; // orange
-            
-            const marker = L.circleMarker(latlng, {
-                radius: 10,
-                fillColor: color,
-                color: '#fff',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).addTo(map);
-
-            // Popup content
-            const popupContent = `
-                <strong>${entry.species.toUpperCase()}</strong><br>
-                ${entry.status}<br>
-                Fly: ${entry.pattern || 'Unknown'}<br>
-                Time: ${new Date(entry.timestamp).toLocaleTimeString()}<br>
-                <small>${entry.lat.toFixed(4)}, ${entry.lng.toFixed(4)}</small>
-            `;
-
-            marker.bindPopup(popupContent);
-            markers.push(marker);
-        }
-
-        // Clear all map markers (except user location)
         function clearMapMarkers() {
             markers.forEach(m => map.removeLayer(m));
             markers = [];
         }
 
-        // Set filter for what to show on map
-        function setMapFilter(filter, btn) {
-            mapFilter = filter;
-            
-            // Update button styles
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            // Reload markers based on filter
-            refreshMapMarkers();
-        }
-
-        // Refresh map with current filter
-        function refreshMapMarkers() {
-            clearMapMarkers();
-            
-            fishingLogs.forEach(entry => {
-                let show = true;
-                
-                if (mapFilter === 'trout' && !entry.species.toLowerCase().includes('trout')) {
-                    show = false;
-                }
-                if (mapFilter === 'kept' && entry.status !== 'kept') {
-                    show = false;
-                }
-                if (mapFilter === 'released' && entry.status !== 'released') {
-                    show = false;
-                }
-
-                if (show) addMapMarker(entry);
-            });
-        }
-
-        // Zoom to area with most catches (hot spots)
-        function zoomToHotSpots() {
-            const catches = fishingLogs.filter(l => l.lat && l.lng);
-            
-            if (catches.length === 0) {
-                alert('No catch locations recorded yet!');
+        function updateGospelContents() {
+            const dayData = timeline[currentDayIndex];
+            if (!dayData.gospelDay || !gospelData[dayData.gospelDay]) {
+                document.getElementById('full-gospel-content').innerHTML = '<p style="color:#666;font-style:italic;">No detailed gospel reading for this day. Acts 1:3 summarizes the forty days.</p>';
                 return;
             }
 
-            // Group by rough location (within 0.1 degrees)
-            const clusters = {};
-            catches.forEach(entry => {
-                const key = `${Math.round(entry.lat * 10)},${Math.round(entry.lng * 10)}`;
-                if (!clusters[key]) clusters[key] = [];
-                clusters[key].push(entry);
-            });
-
-            // Find largest cluster
-            let maxCluster = null;
-            Object.values(clusters).forEach(cluster => {
-                if (cluster.length > 2 && (!maxCluster || cluster.length > maxCluster.length)) {
-                    maxCluster = cluster;
+            const gospelDataForDay = gospelData[dayData.gospelDay];
+            let html = '';
+            
+            ['matthew', 'mark', 'luke', 'john'].forEach(gospel => {
+                if (gospelDataForDay[gospel]) {
+                    gospelDataForDay[gospel].forEach(verse => {
+                        const colors = { matthew: '#E74C3C', mark: '#2980B9', luke: '#27AE60', john: '#9B59B6' };
+                        html += `
+                            <div class="gospel-card">
+                                <h4 style="color:${colors[gospel]}">${gospel.charAt(0).toUpperCase() + gospel.slice(1)}</h4>
+                                <p><strong>${verse.ref}</strong>: ${verse.text}</p>
+                            </div>
+                        `;
+                    });
                 }
             });
 
-            if (maxCluster) {
-                const bounds = L.latLngBounds(maxCluster.map(c => [c.lat, c.lng]));
-                map.fitBounds(bounds);
-                
-                document.getElementById('hot-spots-display').innerHTML = `
-                    <div class="hot-spot-card">
-                        <strong>🔥 Hot Spot Found!</strong><br>
-                        <span class="hot-spot-count">${maxCluster.length}</span> fish caught in this area<br>
-                        <small>Try returning here during similar conditions.</small>
-                    </div>
-                `;
-            } else {
-                // Just zoom to all points
-                const bounds = L.latLngBounds(catches.map(c => [c.lat, c.lng]));
-                map.fitBounds(bounds);
-            }
+            document.getElementById('full-gospel-content').innerHTML = html || '<p style="color:#666;">No gospel readings recorded for this day.</p>';
         }
 
-        function analyzeHotSpots() {
-            const display = document.getElementById('hot-spots-display');
-            const catches = fishingLogs.filter(l => l.lat && l.lng);
-
-            if (catches.length < 5) {
-                display.innerHTML = '<p style="color:#666;"><em>Add 5+ catch entries to see your productive hot spots.</em></p>';
-                return;
-            }
-
-            // Simple clustering by grid cell
-            const clusters = {};
-            catches.forEach(entry => {
-                const key = `${Math.round(entry.lat * 10)},${Math.round(entry.lng * 10)}`;
-                if (!clusters[key]) clusters[key] = { count: 0, species: {}, flies: {} };
-                clusters[key].count++;
-                
-                // Track species at this spot
-                const sp = entry.species || 'Unknown';
-                clusters[key].species[sp] = (clusters[key].species[sp] || 0) + 1;
-
-                // Track flies that worked
-                const fly = `${entry.pattern || '?'} (#${entry.size || '?'})`;
-                clusters[key].flies[fly] = (clusters[key].flies[fly] || 0) + 1;
-            });
-
-            // Sort by catch count
-            const sorted = Object.entries(clusters).sort((a, b) => b[1].count - a[1].count);
-            const top3 = sorted.slice(0, 3);
-
-            let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
-            
-            top3.forEach(([coords, data], i) => {
-                const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
-                html += `
-                    <div style="background:#fff; padding:12px; border-radius:8px; border-left:3px solid var(--accent);">
-                        ${rank} <strong>${data.count} catches at this spot</strong><br>
-                        Top species: ${Object.entries(data.species).sort((a,b) => b[1] - a[1])[0]?.[0] || 'N/A'}<br>
-                        Best fly: ${Object.entries(data.flies).sort((a,b) => b[1] - a[1])[0]?.[0] || 'N/A'}
-                    </div>
-                `;
-            });
-
-            html += '</div>';
-            display.innerHTML = html;
-        }
-
-        // ==========================================
-        // FISHING LOG ENGINE
-        // ==========================================
+        // HOLY SATURDAY INTERLUDE
+        let holySaturdayShown = false;
         
-        let fishingLogs = [];
-
-        function loadLogs() {
-            const saved = localStorage.getItem('fishingLogs');
-            if (saved) {
-                fishingLogs = JSON.parse(saved);
-                refreshMapMarkers();
-                analyzeHotSpots();
-            }
+        function showHolySaturday() {
+            document.getElementById('holy-saturday-interlude').classList.add('visible');
         }
 
-        function saveLogs() {
-            localStorage.setItem('fishingLogs', JSON.stringify(fishingLogs));
-        }
-
-        function addLogEntry(data = null) {
-            const status = data?.status || document.getElementById('log-status').value;
-            const species = data?.species || document.getElementById('log-species').value;
-            
-            if (!species) { alert('Please select a fish species!'); return; }
-
-            // Get location (from GPS or manual input)
-            let lat = null, lng = null;
-            const locText = document.getElementById('location-input').value || '';
-            
-            // Try to extract coordinates from text like "39.74°, -105.02°"
-            const coordMatch = locText.match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
-            if (coordMatch) {
-                lat = parseFloat(coordMatch[1]);
-                lng = parseFloat(coordMatch[2]);
-            } else if (currentLocation) {
-                // Use current GPS if available
-                lat = currentLocation[0];
-                lng = currentLocation[1];
-                document.getElementById('location-input').value = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
-            }
-
-            const entry = {
-                id: Date.now(),
-                timestamp: new Date().toISOString(),
-                status,
-                species,
-                pattern: data?.pattern || document.getElementById('log-fly-pattern').value || 'Unspecified',
-                size: data?.size || document.getElementById('log-fly-size').value || 'Any',
-                color: data?.color || document.getElementById('log-fly-color').value || 'Any',
-                length: data?.length || document.getElementById('log-length').value || null,
-                lat, lng,
-                location: locText || (lat && lng ? `${lat.toFixed(4)}°, ${lng.toFixed(4)}°` : 'Unknown')
-            };
-
-            fishingLogs.push(entry);
-            saveLogs();
-
-            // Reset length but keep fly selection
-            document.getElementById('log-length').value = '';
-
-            updateLogDisplay();
-            updateStats();
-            addMapMarker(entry);
-            analyzeHotSpots();
-
-            alert(`✓ Logged: ${status} ${species}`);
-        }
-
-        function presetLog(action) {
-            let status = 'hooked';
-            switch(action) {
-                case 'land': status = 'landed'; break;
-                case 'release': status = 'released'; break;
-                case 'keep': status = 'kept'; break;
-            }
-
-            addLogEntry({ 
-                status,
-                species: document.getElementById('log-species').value || '',
-                pattern: document.getElementById('log-fly-pattern').value || 'Unknown',
-                size: document.getElementById('log-fly-size').value || 'Any'
-            });
-        }
-
-        function updateLogDisplay() {
-            const container = document.getElementById('log-entries');
-            
-            if (fishingLogs.length === 0) {
-                container.innerHTML = '<p style="color:#666; font-style:italic;"><em>No entries yet. Start fishing!</em></p>';
-                return;
-            }
-
-            const sorted = [...fishingLogs].sort((a, b) => b.id - a.id).slice(0, 10); // Show last 10
-            
-            container.innerHTML = sorted.map(entry => {
-                const date = new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                const statusClass = entry.status === 'kept' ? 'status-kept' : 'status-released';
-
-                return `
-                    <div class="fish-entry">
-                        <div class="fish-header">
-                            <span class="fish-species">${entry.species.toUpperCase()} (${date})</span>
-                            <span class="fish-status ${statusClass}">${entry.status.toUpperCase()}</span>
-                        </div>
-                        <div style="font-size:0.9em; color:#666;">
-                            Fly: ${entry.pattern} (#${entry.size}, ${entry.color}) | 
-                            Loc: ${entry.lat ? entry.lat.toFixed(2) + '°' : 'Unknown'}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateStats() {
-            const stats = {
-                hooked: fishingLogs.filter(l => l.status === 'hooked').length,
-                landed: fishingLogs.filter(l => ['landed', 'released', 'kept'].includes(l.status)).length,
-                released: fishingLogs.filter(l => l.status === 'released').length,
-                kept: fishingLogs.filter(l => l.status === 'kept').length
-            };
-
-            document.getElementById('stat-hooked').textContent = stats.hooked;
-            document.getElementById('stat-landed').textContent = stats.landed;
-            document.getElementById('stat-released').textContent = stats.released;
-            document.getElementById('stat-kept').textContent = stats.kept;
-        }
-
-        function exportLogs() {
-            const dataStr = JSON.stringify(fishingLogs, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `fishing-log-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            
-            alert(`Exported ${fishingLogs.length} entries with GPS coordinates!`);
-        }
-
-        // ==========================================
-        // REGULATIONS (Simplified)
-        // ==========================================
-        
-        const speciesByState = {
-            'CO': ['Rainbow Trout', 'Brook Trout', 'Brown Trout'],
-            'MT': ['Rainbow Trout', 'Brook Trout', 'Brown Trout', 'Cutthroat Trout'],
-            'WY': ['Rainbow Trout', 'Brook Trout', 'Brown Trout']
+        window.closeHolySaturday = function() {
+            document.getElementById('holy-saturday-interlude').classList.remove('visible');
+            updateMapForDay(2); // Move to Day 3
         };
 
-        const regulations = {
-            'CO-Rainbow Trout': { min: 7, daily: 2, total: 4, season: 'All year' },
-            'MT-Brown Trout': { min: 7, max: 16, daily: 2, total: 4, season: 'Varies by water' }
-        };
-
-        function updateSpecies() {
-            const state = document.getElementById('state-select').value;
-            const speciesSelect = document.getElementById('species-select');
-            
-            if (!state) {
-                speciesSelect.innerHTML = '<option value="">-- Choose --</option>';
-                return;
-            }
-            
-            speciesSelect.innerHTML = speciesByState[state].map(s => 
-                `<option value="${s}">${s}</option>`
-            ).join('');
-        }
-
-        function showRegulations() {
-            const state = document.getElementById('state-select').value;
-            const species = document.getElementById('species-select').value;
-            
-            if (!state || !species) return;
-            
-            const key = `${state}-${species}`;
-            const reg = regulations[key];
-            
-            if (!reg) {
-                document.getElementById('reg-display').innerHTML = '<p style="color:#666;"><em>Check official state wildlife website.</em></p>';
-                return;
-            }
-            
-            let html = `<div class="result-box success">`;
-            html += `  <strong>${species} (${state})</strong><br>`;
-            html += `  Min: ${reg.min}" | Daily: ${reg.daily}<br>Season: ${reg.season}`;
-            if (reg.max) html += `<br>Slot: Up to ${reg.max}"`;
-            html += `</div>`;
-            
-            document.getElementById('reg-display').innerHTML = html;
-        }
-
-        function getLicenseInfo() {
-            const state = document.getElementById('state-select').value;
-            if (!state) { alert('Select a state first!'); return; }
-            
-            const urls = { 'CO': 'https://cpw.state.co.us', 'MT': 'https://fwp.mt.gov' };
-            alert(`Get your license at:\n${urls[state]}`);
-        }
-
-        // ==========================================
-        // INITIALIZATION
-        // ==========================================
+        // SLIDER EVENT
+        const slider = document.getElementById('timeline-slider');
+        slider.max = String(timeline.length - 1);
         
-        document.getElementById('session-date').textContent = new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' 
+        let lastDayIndex = 0;
+        slider.addEventListener('input', event => {
+            const newIndex = parseInt(event.target.value, 10);
+            
+            // Check if crossing from Day 2 to Day 3 (Holy Saturday interlude)
+            if (!holySaturdayShown && lastDayIndex === 1 && newIndex === 2) {
+                showHolySaturday();
+                holySaturdayShown = true;
+                return; // Don't update day yet, wait for user to click "Enter Sunday"
+            }
+
+            updateMapForDay(newIndex);
+            lastDayIndex = newIndex;
         });
 
-        // Initialize map when page loads (wait for Leaflet to be ready)
+        // Initialize on load
         window.addEventListener('load', initMap);
 
     </script>
